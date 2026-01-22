@@ -1,0 +1,101 @@
+# request
+
+version 1
+
+## version: int
+
+version of the api
+
+## id: string
+
+the id of request. the response will have a same id. it should be a string so that the id can be formatted to be more readable
+
+no fixed format needed, just make sure no conflict on the id
+
+## kind: string
+
+type of requested
+
+- get_info
+
+to get info of the computer's hardware or software, or advice for computer maintenance
+
+- execute_tool
+
+to execute tools that kernel gives
+
+## payload: block
+
+detailed info for the given type
+
+for get_info
+
+- name: string
+
+the name of the seeking info
+
+see file `supported_get_info.txt` for the reference for the supported info
+
+- addition: map<string, any>
+
+some case, we need additional parameter for getting an info, also see file `supported_get_info.txt`
+
+for execute_tool:
+
+- name: string
+
+the name of tool. see `supported_execute_tool.txt`
+
+- addition: map<string, any>
+
+the addition parameter for the execution. see `supported_execute_tool.txt`
+
+# response
+
+version 1
+
+## version: int
+
+version of the api
+
+## id: string
+
+the id of response, corresponding to the request, should be same as the request.
+
+## state: int
+
+whether the request executes well
+
+return 100 for working well, 404 for not finding the given request type or can not parse the given request, 500 for kernel having internal error
+
+## payload: map<string, any>
+
+actual response value
+
+for 404 or 500 state
+
+- value: string
+
+message of the error
+
+for get_info
+
+- value: dynamic
+
+the value of the info. the type of value varies. see `supported_get_info` to get the correct type
+
+for execute_tool
+
+- value: int
+
+tool's internal state, standing for whether the tool works well. 100 for it works well, 500 for it doesn't work well
+
+- addition: map<string, any>
+
+for 100:
+
+the addition info about the execution
+
+for 500:
+
+the error info

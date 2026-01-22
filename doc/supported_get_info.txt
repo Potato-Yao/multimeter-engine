@@ -1,0 +1,27 @@
+| name | description | value type | unit | addition | description |
+| cpu_name | get the model of cpu | string | | | |
+| cpu_temperature | get cpu's package temperature | double | Celsius | | |
+| cpu_power | get cpu's power | double | W | | |
+| cpu_voltage | get cpu core's voltage | double | V | | |
+| cpu_clock_avg | get cpu's average clock note: use rms value if you don't know why do you need to use avg value | double | MHz | | |
+| cpu_clock_rms | get cpu's effective value for reference | double | MHz | | |
+| cpu_clock_max | get cpu's maximum clock of cores | double | MHz | | |
+| cpu_usage | get cpu's usage percentage | double | | | |
+| gpu_name | get the model of gpu | string | | | |
+| gpu_temperature | get gpu's package temperature | double | Celsius | | |
+| gpu_power | get gpu's power | double | W | | |
+| gpu_voltage | get gpu core's voltage | double | V | | |
+| gpu_clock_rms | get cpu's effective value for reference | double | MHz | | |
+| mem_total | get total capacity of memory | double | GB | | |
+| mem_available | get available memory | double | GB | | |
+| bat_capacity_max | get battery's max capacity | double | Wh | | |
+| bat_capacity_remain | get battery's remain capacity | double | Wh | | |
+| bat_capacity_designed | get battery's designed capacity | double | Wh | | |
+| bat_voltage | get battery's voltage | double | V | | |
+| bat_rate | get battery's charge or discharge power | double | W | | |
+| bat_state | get if the battery is in charging or not | boolean | | | |
+| os_activated | get windows's activated state note: this value will always be true for linux | boolean | | | |
+| disk_partition | get partitions of disks | string array | | | |
+| disk_disk | get disks of the computer | string array | | | |
+| disk_partition_detail | get a specific partition's info | string array | | index: int | index for the partition, see disk_partition for index of partitions |
+| disk_disk_detail | get a specific disk's info | string array | | index: int | index for the disk, see disk_disk for index of disks |
