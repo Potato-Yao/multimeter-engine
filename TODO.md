@@ -1,0 +1,3 @@
+- reduce `pub` and `mut` as more as possible
+- consider if it is necessary to make `new` function for structs
+- consider the usage of string or &str
