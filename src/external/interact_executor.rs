@@ -1,10 +1,10 @@
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{Read, Write};
 
 pub const EOF: &str = "\0";
 
 pub struct InteractExecutor {
     stdin: std::process::ChildStdin,
-    stdout:std::process::ChildStdout,
+    stdout: std::process::ChildStdout,
 }
 
 impl InteractExecutor {
@@ -23,14 +23,16 @@ impl InteractExecutor {
         Ok(InteractExecutor { stdin, stdout })
     }
 
-    pub fn execute(&mut self, input: &str) -> Result<String, String> {
+    pub fn execute(&mut self, input: Option<&str>) -> Result<String, String> {
         self.execute_until(input, EOF)
     }
 
-    pub fn execute_until(&mut self, input: &str, wait_for: &str) -> Result<String, String> {
-        self.stdin
-            .write_all(format!("{}\n", input).as_bytes())
-            .map_err(|e| e.to_string())?;
+    pub fn execute_until(&mut self, input: Option<&str>, wait_for: &str) -> Result<String, String> {
+        let content_str = match input {
+            Some(content) => format!("{}\n", content),
+            None => "".to_string(),
+        };
+        self.stdin.write_all(content_str.as_bytes()).map_err(|e| e.to_string())?;
         self.stdin.flush().map_err(|e| e.to_string())?;
 
         let mut output = String::new();
@@ -50,5 +52,9 @@ impl InteractExecutor {
         }
 
         Ok(output)
+    }
+
+    pub fn consume_until(&mut self, wait_for: &str) -> Result<String, String> {
+        self.execute_until(None, wait_for)
     }
 }

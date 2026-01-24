@@ -107,9 +107,21 @@ impl ExternalProgram {
         if let Some(process) = self.process.as_mut() {
             let output = process
                 .execute_until(
-                    message.as_str(),
+                    Some(message.as_str()),
                     wait_for.unwrap_or(EOF.to_string()).as_str(),
                 )
+                .map_err(|e| e.to_string())?;
+
+            Ok(output)
+        } else {
+            Err("Process is not running".to_string())
+        }
+    }
+
+    pub fn consume_initial_output(&mut self, wait_for: String) -> Result<String, String> {
+        if let Some(process) = self.process.as_mut() {
+            let output = process
+                .consume_until(wait_for.as_str())
                 .map_err(|e| e.to_string())?;
 
             Ok(output)
@@ -173,8 +185,8 @@ mod tests {
         #[cfg(windows)]
         {
             let mut program = ExternalProgram::new_interpreter(
-                "python".to_string(),
-                // "diskpart".to_string(),
+                // "python".to_string(),
+                "diskpart".to_string(),
                 ProgramKind::Command,
                 vec![vec![]],
             );
@@ -183,8 +195,10 @@ mod tests {
                 panic!("Failed to start program: {}", e);
             }
 
-            // match program.interact("list disk".to_string(), Some("*".to_string())) {
-            match program.interact("print(\"hi\")".to_string(), Some(">>>".to_string())) {
+            program.consume_initial_output("DISKPART>".to_string()).unwrap();
+
+            match program.interact("list disk".to_string(), Some("DISKPART>".to_string())) {
+            // match program.interact("print(\"hi\")".to_string(), Some(">>>".to_string())) {
                 Ok(output) => {
                     println!("The output: {}", output);
                     assert!(!output.is_empty());
