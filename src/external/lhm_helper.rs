@@ -161,7 +161,15 @@ mod tests {
     #[test]
     fn test_get_hardware_list() {
         let mut helper = LhmHelper::connect().unwrap();
-        println!("{}", helper.get_hardware_list().unwrap());
+        assert!(!helper.get_hardware_list().unwrap().is_empty());
+        helper.disconnect().unwrap();
+    }
+
+    #[test]
+    fn test_get_value() {
+        let mut helper = LhmHelper::connect().unwrap();
+        let value = helper.get_value(0);
+        assert!(value.is_ok());
         helper.disconnect().unwrap();
     }
 }

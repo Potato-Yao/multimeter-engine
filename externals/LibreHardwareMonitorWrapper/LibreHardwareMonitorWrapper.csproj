@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <PlatformName>windows</PlatformName>
+        <ImplicitUsings>enable</ImplicitUsings>
+      <SelfContained>true</SelfContained>
+        <Platforms>AnyCPU</Platforms>
+        <Nullable>enable</Nullable>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+      <PublishSingleFile>true</PublishSingleFile>
+      <PublishTrimmed>false</PublishTrimmed>
+      <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+      <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <PlatformTarget>AnyCPU</PlatformTarget>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre437" />
+        <PackageReference Include="Microsoft.Win32.SystemEvents" Version="9.0.7" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="build\" />
+    </ItemGroup>
+
+</Project>
