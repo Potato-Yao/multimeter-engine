@@ -9,6 +9,9 @@ pub struct InteractExecutor {
 
 impl InteractExecutor {
     pub fn build(command: &str) -> Result<Self, String> {
+        #[cfg(windows)]
+        let command = &*command.replace("\\", "/");  // to avoid shell_words treating windows' path as unix's
+
         let command = shell_words::split(command).map_err(|e| e.to_string())?;
         let mut process = std::process::Command::new(&command[0])
             .args(&command[1..])
@@ -32,7 +35,9 @@ impl InteractExecutor {
             Some(content) => format!("{}\n", content),
             None => "".to_string(),
         };
-        self.stdin.write_all(content_str.as_bytes()).map_err(|e| e.to_string())?;
+        self.stdin
+            .write_all(content_str.as_bytes())
+            .map_err(|e| e.to_string())?;
         self.stdin.flush().map_err(|e| e.to_string())?;
 
         let mut output = String::new();

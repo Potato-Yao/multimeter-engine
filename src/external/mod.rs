@@ -1,4 +1,5 @@
 mod interact_executor;
+mod lhm_helper;
 
 use crate::external::interact_executor::{EOF, InteractExecutor};
 use std::time::Duration;
@@ -55,7 +56,7 @@ impl ExternalProgram {
 
         let args = &self.args_set[args_index];
         let command_name = match self.program_kind {
-            ProgramKind::Executable => self.get_local_path(),
+            ProgramKind::Executable => get_local_path(&*self.path),
             ProgramKind::Command => self.path.clone(),
         };
 
@@ -67,7 +68,7 @@ impl ExternalProgram {
                 if self.program_kind == ProgramKind::Command {
                     command = format!("cmd /C {}", command);
                 } else if self.program_kind == ProgramKind::Executable {
-                    command = format!("./{}", command);
+                    command = format!("{}", command);
                 }
             }
 
@@ -136,14 +137,16 @@ impl ExternalProgram {
         }
     }
 
-    fn get_local_path(&self) -> String {
-        let mut path = std::env::current_exe().unwrap();
-        path.pop();
-        path.pop();
-        path.push("externals");
-        path.push(&self.path);
-        path.to_str().unwrap().to_string()
-    }
+  
+}
+
+fn get_local_path(tool_path: &str) -> String {
+    let mut path = std::env::current_exe().unwrap();
+    path.pop();
+    path.pop();
+    path.push("externals");
+    path.push(tool_path);
+    path.to_str().unwrap().to_string()
 }
 
 #[cfg(test)]
@@ -195,10 +198,12 @@ mod tests {
                 panic!("Failed to start program: {}", e);
             }
 
-            program.consume_initial_output("DISKPART>".to_string()).unwrap();
+            program
+                .consume_initial_output("DISKPART>".to_string())
+                .unwrap();
 
             match program.interact("list disk".to_string(), Some("DISKPART>".to_string())) {
-            // match program.interact("print(\"hi\")".to_string(), Some(">>>".to_string())) {
+                // match program.interact("print(\"hi\")".to_string(), Some(">>>".to_string())) {
                 Ok(output) => {
                     println!("The output: {}", output);
                     assert!(!output.is_empty());
@@ -207,6 +212,31 @@ mod tests {
                 Err(e) => panic!("Interaction failed: {}", e),
             }
 
+            program.close();
+        };
+    }
+
+    #[test]
+    fn test_run_interpreter_tool() {
+        #[cfg(windows)]
+        {
+            let mut program = ExternalProgram::new_interpreter(
+                "win-activate/MAS_AIO.cmd".to_string(),
+                ProgramKind::Executable,
+                vec![vec![]],
+            );
+
+            if let Err(e) = program.start(0) {
+                panic!("Failed to start program: {}", e);
+            }
+
+            std::thread::sleep(Duration::from_secs(2));
+
+            // match program.interact("1".to_string(), None) {
+            //     Ok(_) => {}
+            //     Err(e) => panic!("Interaction failed: {}", e),
+            // }
+            //
             program.close();
         };
     }
