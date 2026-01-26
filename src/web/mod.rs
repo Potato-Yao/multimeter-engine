@@ -1,6 +1,7 @@
 use crate::web::model::{Request, Response};
 use crate::core::request_executor::execute_request;
 use log::{debug, error, info};
+use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 
 pub mod model;
@@ -28,7 +29,7 @@ pub fn handle_request(line: String) -> Result<Response, Response> {
             id: DEFAULT_ID.to_string(),
             state: NOT_FOUND_STATE,
             payload: PayLoad {
-                value: error,
+                value: DataContainer::from(error),
                 addition: None,
             },
         })

@@ -85,16 +85,13 @@ public class HardwareResearcher : IVisitor
             //     sensor.SensorType != SensorType.Fan)
             //     return;
 
-            var id = sensor.Identifier.ToString();
-            var name = sensor.Name.Length > 0 ? sensor.Name : sensor.SensorType.ToString();
-
             if (sensor.SensorType == SensorType.Control)
             {
                 // todo
             }
             else
             {
-                id = sensor.SensorType.ToString() + counterList[(int)sensor.SensorType];
+                var id = sensor.SensorType.ToString() + counterList[(int)sensor.SensorType];
                 hardwareList.Add(new Sensor(id, sensor.Name, sensor.SensorType.ToString(), sensor, totInd));
 
                 ++totInd;
@@ -130,12 +127,23 @@ public class HardwareResearcher : IVisitor
         foreach (var hardware in hardwareArray)
         {
             Logger.Info("reach hardware: " + hardware.Name + " with type " + hardware.HardwareType);
+            
+            // Add hardware info (name, type, etc.) as a separate item
+            var hardwareInfoId = "HardwareInfo" + totInd;
+            hardwareList.Add(new HardwareInfo(hardwareInfoId, hardware.Name, hardware.HardwareType.ToString(), hardware, totInd));
+            ++totInd;
+            
             var sensorArray = hardware.Sensors;
             foreach (var sensor in sensorArray) AddHardware(sensor);
 
             var subHardwareArray = hardware.SubHardware;
             foreach (var subHardware in subHardwareArray)
             {
+                // Add sub-hardware info
+                var subHardwareInfoId = "HardwareInfo" + totInd;
+                hardwareList.Add(new HardwareInfo(subHardwareInfoId, subHardware.Name, subHardware.HardwareType.ToString(), subHardware, totInd));
+                ++totInd;
+                
                 var subSensorArray = subHardware.Sensors;
                 foreach (var subSensor in subSensorArray) AddHardware(subSensor);
             }

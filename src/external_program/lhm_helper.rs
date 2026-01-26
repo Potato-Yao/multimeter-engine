@@ -1,4 +1,4 @@
-use crate::external::get_local_path;
+use crate::external_program::program::get_local_path;
 use chrono::Local;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
@@ -10,12 +10,13 @@ use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
-    GetHardware = 0,
+    QueryHardware = 0,
     SetAuto = 1,
     SetValue = 2,
     GetValue = 3,
     Shutdown = 4,
     Update = 5,
+    GetStringValue = 6,
 }
 
 pub struct LhmHelper {
@@ -121,8 +122,15 @@ impl LhmHelper {
         Ok(f64::from_le_bytes(buf))
     }
 
-    pub fn get_hardware_list(&mut self) -> io::Result<String> {
-        self.send_command(Command::GetHardware)?;
+    fn read_string(&mut self) -> io::Result<String> {
+        let mut reader = BufReader::new(&self.stream);
+        let mut line = String::new();
+        reader.read_line(&mut line)?;
+        Ok(line.trim().to_string())
+    }
+
+    pub fn query_hardware(&mut self) -> io::Result<String> {
+        self.send_command(Command::QueryHardware)?;
 
         let mut reader = BufReader::new(&self.stream);
         let mut json = String::new();
@@ -143,6 +151,12 @@ impl LhmHelper {
         self.read_double()
     }
 
+    pub fn get_string_value(&mut self, index: i32) -> io::Result<String> {
+        self.send_command(Command::GetStringValue)?;
+        self.send_int(index)?;
+        self.read_string()
+    }
+
     pub fn update(&mut self) -> io::Result<()> {
         self.send_command(Command::Update)
     }
@@ -159,9 +173,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_hardware_list() {
+    fn test_query_hardware() {
         let mut helper = LhmHelper::connect().unwrap();
-        assert!(!helper.get_hardware_list().unwrap().is_empty());
+        assert!(!helper.query_hardware().unwrap().is_empty());
         helper.disconnect().unwrap();
     }
 

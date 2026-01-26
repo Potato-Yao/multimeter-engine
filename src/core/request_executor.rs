@@ -1,6 +1,7 @@
 use log::debug;
 use crate::core::RequestKind;
 use crate::monitor::{query_info, QueryRequest};
+use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 use crate::web::{LATEST_VERSION, NOT_FOUND_STATE, SUCCESS_STATE};
 use crate::web::model::{Request, Response};
@@ -15,7 +16,7 @@ pub fn execute_request(req: Request) -> Result<Response, Response> {
             id: req.id,
             state: NOT_FOUND_STATE,
             payload: PayLoad {
-                value: format!("Unknown request version: {}", req.version),
+                value: format!("Unknown request version: {}", req.version).into(),
                 addition: None,
             },
         }),
@@ -24,7 +25,7 @@ pub fn execute_request(req: Request) -> Result<Response, Response> {
 
 fn handle_v1_request(req: Request) -> Result<Response, Response> {
     let payload = PayLoad {
-        value: "".to_string(),
+        value: DataContainer::from(""),
         addition: None,
     };
     let state = SUCCESS_STATE;
@@ -32,7 +33,7 @@ fn handle_v1_request(req: Request) -> Result<Response, Response> {
     let info = match req.kind {
         RequestKind::GetInfo => {
             query_info(QueryRequest {
-                target: req.payload.value,
+                target: String::from(req.payload.value),
                 parameter: req.payload.addition,
             })
         }

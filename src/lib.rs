@@ -2,7 +2,7 @@ mod core;
 mod monitor;
 mod util;
 mod web;
-mod external;
+mod external_program;
 
 use futures::{SinkExt, StreamExt};
 use tokio::net::TcpStream;

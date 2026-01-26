@@ -30,6 +30,19 @@ public class HardwareManager
         {
             HardwareType.Control => (hardware as Control)!.Value(),
             HardwareType.Sensor => (hardware as Sensor)!.Value(),
+            HardwareType.Info => 0.0, // Info types don't have numeric values
+            _ => throw new ArgumentOutOfRangeException(nameof(hardware.Type), hardware.Type, "Unknown hardware type")
+        };
+    }
+
+    public string GetStringValue(int index)
+    {
+        var hardware = _hardwareList[index];
+        return hardware.Type switch
+        {
+            HardwareType.Info => (hardware as HardwareInfo)!.GetName(),
+            HardwareType.Control => (hardware as Control)!.Value().ToString(),
+            HardwareType.Sensor => (hardware as Sensor)!.Value().ToString(),
             _ => throw new ArgumentOutOfRangeException(nameof(hardware.Type), hardware.Type, "Unknown hardware type")
         };
     }

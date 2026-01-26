@@ -6,12 +6,13 @@ namespace LibreHardwareMonitorWrapper;
 
 public enum Command
 {
-    GetHardware = 0,
+    QueryHardware = 0,
     SetAuto = 1,
     SetValue = 2,
     GetValue = 3,
     Shutdown = 4,
-    Update = 5
+    Update = 5,
+    GetStringValue = 6
 }
 
 public class Server
@@ -49,7 +50,7 @@ public class Server
             int index;
             switch (command)
             {
-                case Command.GetHardware:
+                case Command.QueryHardware:
                     var hardwareListInJson = hardwareManager.HardwareListToJson();
                     var hardwareListInBytes = Encoding.UTF8.GetBytes(hardwareListInJson);
                     Logger.Debug("Sending hardware");
@@ -70,6 +71,12 @@ public class Server
                     var doubleValue = hardwareManager.GetValue(index);
                     var valueInBytes = BitConverter.GetBytes(doubleValue);
                     block_send(valueInBytes);
+                    break;
+                case Command.GetStringValue:
+                    index = block_read();
+                    var stringValue = hardwareManager.GetStringValue(index);
+                    var stringValueInBytes = Encoding.UTF8.GetBytes(stringValue + "\n");
+                    block_send(stringValueInBytes);
                     break;
                 case Command.Shutdown:
                     return;

@@ -1,4 +1,4 @@
-﻿namespace LibreHardwareMonitorWrapper;
+﻿﻿namespace LibreHardwareMonitorWrapper;
 
 
 
@@ -6,6 +6,7 @@ public enum HardwareType
 {
     Control = 1,
     Sensor = 2,
+    Info = 3,
 }
 
 public abstract class BaseHardware
