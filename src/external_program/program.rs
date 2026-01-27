@@ -44,8 +44,8 @@ impl ExternalProgram {
         }
     }
 
-    /// for transient external_program programs, starting a program is equivalent to execute it, the return value will be the output of the program.
-    /// for interpreter external_program programs, starting a program will launch the interpreter with the given args, the return value has no meaning.
+    /// for transient external programs, starting a program is equivalent to execute it, the return value will be the output of the program.
+    /// for interpreter external programs, starting a program will launch the interpreter with the given args, the return value has no meaning.
     pub fn start(&mut self, args_index: usize) -> Result<String, String> {
         if args_index >= self.args_set.len() {
             return Err("Invalid args index".to_string());
@@ -134,7 +134,7 @@ impl ExternalProgram {
         }
     }
 
-  
+
 }
 
 pub fn get_local_path(tool_path: &str) -> String {
@@ -150,7 +150,6 @@ pub fn get_local_path(tool_path: &str) -> String {
 mod tests {
     use std::time::Duration;
     use crate::external_program::program::{ExternalProgram, ProgramKind};
-    use crate::external_program::*;
 
     #[test]
     fn test_run_transient_command() {
