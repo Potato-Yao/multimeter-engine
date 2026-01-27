@@ -1,7 +1,7 @@
 use crate::monitor::windows::Windows;
 use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use log::error;
 use std::collections::HashMap;
@@ -42,7 +42,6 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         // add special handling here
 
         let map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
-        println!("INFO: {:?}", map);
         if let Some(value) = map.get(request.target.as_str()) {
             if let Some(data) = value {
                 Ok(PayLoad {
@@ -72,21 +71,20 @@ fn init() -> Result<()> {
 
     let _ = QUERY_MANAGER.set(manager.clone());
 
-    let mgr = manager.clone();
-    let mut mgr = mgr.lock().map_err(|e| anyhow!(e.to_string()))?;
-    let mut map = &mut INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
-    if let Err(e) = mgr.update(&mut map) {
-        error!("Update failed: {}", e);
+    {
+        let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
+        let mut map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
+        if let Err(e) = mgr.update(&mut map) {
+            error!("Update failed (initial): {}", e);
+        }
     }
-
     thread::spawn(move || {
         loop {
             {
                 let mut mgr = manager.lock().unwrap();
-                let mut map = &mut INFO_MAP.lock().unwrap();
+                let mut map = INFO_MAP.lock().unwrap();
                 if let Err(e) = mgr.update(&mut map) {
                     error!("Update failed: {}", e);
-                    break;
                 }
             }
             thread::sleep(Duration::from_millis(500));
@@ -144,11 +142,13 @@ mod tests {
 
     #[test]
     fn test_query() {
-        let request = QueryRequest {
-            target: "cpu_voltage".to_string(),
-            parameter: None,
-        };
-        let result = query_info(request);
-        println!("{:?}", result);
+        for _ in 0..30 {
+            let request = QueryRequest {
+                target: "cpu_power".to_string(),
+                parameter: None,
+            };
+            let result = query_info(request);
+            thread::sleep(Duration::from_millis(200));
+        }
     }
 }

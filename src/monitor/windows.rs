@@ -28,6 +28,7 @@ pub struct Windows {
 
 impl Updater for Windows {
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        self.lhm_helper.update()?;
         for (k, v) in map.iter_mut() {
             if let Some(index) = self.index_map.get(*k) && *index != -1 {
                 let value = self.query_sensor_value(*index).map_err(|e| anyhow!(e))?;
