@@ -140,7 +140,9 @@ impl ExternalProgram {
 pub fn get_local_path(tool_path: &str) -> String {
     let mut path = std::env::current_exe().unwrap();
     path.pop();
+    #[cfg(test)]
     path.pop();
+    
     path.push("externals");
     path.push(tool_path);
     path.to_str().unwrap().to_string()

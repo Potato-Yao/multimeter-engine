@@ -3,7 +3,7 @@ use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
-use log::error;
+use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
@@ -14,6 +14,7 @@ mod windows;
 
 pub type InfoMap = HashMap<String, DataContainer>;
 
+#[derive(Debug)]
 pub struct QueryRequest {
     pub target: String,
     pub parameter: Option<InfoMap>,
@@ -34,6 +35,7 @@ static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLoc
 });
 
 pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
+    debug!("Query Request: {:?}", request);
     if QUERY_MANAGER.get().is_none() {
         init()?;
     }
@@ -66,6 +68,7 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
 }
 
 fn init() -> Result<()> {
+    debug!("Initializing Query Manager");
     #[cfg(windows)]
     let manager = Windows::build()?;
 
@@ -148,6 +151,7 @@ mod tests {
                 parameter: None,
             };
             let result = query_info(request);
+            assert!(result.is_ok());
             thread::sleep(Duration::from_millis(200));
         }
     }

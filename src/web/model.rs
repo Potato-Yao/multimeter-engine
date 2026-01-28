@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::core::RequestKind;
+use crate::web::RequestKind;
 use crate::util::payload::PayLoad;
 
 #[derive(Serialize, Deserialize, Debug)]

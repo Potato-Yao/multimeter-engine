@@ -1,10 +1,12 @@
 use crate::web::model::{Request, Response};
-use crate::core::request_executor::execute_request;
+use request_executor::execute_request;
 use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
 use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 
 pub mod model;
+pub mod request_executor;
 
 pub type SERVER_STATE = u32;
 
@@ -13,6 +15,13 @@ pub const NOT_FOUND_STATE: SERVER_STATE = 404;
 const INTERNAL_ERROR_STATE: SERVER_STATE = 500;
 pub const LATEST_VERSION: u32 = 1;
 const DEFAULT_ID: &str = "__default_id__";
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestKind {
+    GetInfo,
+    ExecuteTool,
+}
 
 pub fn handle_request(line: String) -> Result<Response, Response> {
     if let Ok(req) = serde_json::from_str::<Request>(&line) {

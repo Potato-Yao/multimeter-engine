@@ -1,4 +1,3 @@
-mod core;
 mod monitor;
 mod util;
 mod web;

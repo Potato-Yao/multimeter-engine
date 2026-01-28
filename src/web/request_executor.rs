@@ -1,10 +1,10 @@
-use log::debug;
-use crate::core::RequestKind;
-use crate::monitor::{query_info, QueryRequest};
+use crate::monitor::{QueryRequest, query_info};
 use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
-use crate::web::{LATEST_VERSION, NOT_FOUND_STATE, SUCCESS_STATE};
+use crate::web::RequestKind;
 use crate::web::model::{Request, Response};
+use crate::web::{LATEST_VERSION, NOT_FOUND_STATE, SUCCESS_STATE};
+use log::debug;
 
 pub fn execute_request(req: Request) -> Result<Response, Response> {
     debug!("Request is executing: {:?}", req);
@@ -24,23 +24,26 @@ pub fn execute_request(req: Request) -> Result<Response, Response> {
 }
 
 fn handle_v1_request(req: Request) -> Result<Response, Response> {
-    let payload = PayLoad {
-        value: DataContainer::from(""),
-        addition: None,
-    };
     let state = SUCCESS_STATE;
 
-    let info = match req.kind {
-        RequestKind::GetInfo => {
-            query_info(QueryRequest {
-                target: String::from(req.payload.value),
-                parameter: req.payload.addition,
-            })
-        }
+    let payload = match req.kind {
+        RequestKind::GetInfo => query_info(QueryRequest {
+            target: String::from(req.payload.value),
+            parameter: req.payload.addition,
+        }),
         RequestKind::ExecuteTool => {
             todo!()
         }
-    };
+    }
+    .map_err(|e| Response {
+        version: req.version,
+        id: req.id.clone(),
+        state: NOT_FOUND_STATE,
+        payload: PayLoad {
+            value: format!("Failed to process request: {}", e).into(),
+            addition: None,
+        },
+    })?;
 
     let res = Response {
         version: req.version,

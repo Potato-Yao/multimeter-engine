@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::process::{Child, Command as ProcessCommand, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
+use log::debug;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
@@ -33,7 +34,7 @@ impl LhmHelper {
 
     pub fn connect() -> io::Result<Self> {
         let wrapper_path =
-            get_local_path("LibreHardwareMonitorWrapper/build/LibreHardwareMonitorWrapper.exe");
+            get_local_path("./LibreHardwareMonitorWrapper/build/LibreHardwareMonitorWrapper.exe");
         Self::connect_custom(PathBuf::from(wrapper_path), 10)
     }
 
@@ -47,9 +48,18 @@ impl LhmHelper {
         let log_file_path = log_dir.join(format!("LibreHardwareMonitorWrapper_{}.log", ts));
         let log_file = fs::File::create(&log_file_path)?;
 
-        let mut child = ProcessCommand::new(&wrapper_path)
+        let mut lhm_path = std::env::current_exe()?;
+        println!("LHM Path: {}", lhm_path.display());
+        lhm_path.pop();
+        println!("LHM Path: {}", lhm_path.display());
+        lhm_path.push("externals");
+        println!("LHM Path: {}", lhm_path.display());
+        lhm_path.push(wrapper_path);
+        println!("LHM Path: {}", lhm_path.display());
+        debug!("Starting LHM Wrapper from {:?}", lhm_path) ;
+        let mut child = ProcessCommand::new(&lhm_path)
             .arg("--log=error")
-            .current_dir(wrapper_path.parent().unwrap_or(&wrapper_path))
+            // .current_dir(wrapper_path.parent().unwrap_or(&wrapper_path))
             .stdout(Stdio::from(log_file))
             .stderr(Stdio::piped())
             .spawn()?;
