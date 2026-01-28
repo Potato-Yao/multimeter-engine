@@ -49,13 +49,9 @@ impl LhmHelper {
         let log_file = fs::File::create(&log_file_path)?;
 
         let mut lhm_path = std::env::current_exe()?;
-        println!("LHM Path: {}", lhm_path.display());
         lhm_path.pop();
-        println!("LHM Path: {}", lhm_path.display());
         lhm_path.push("externals");
-        println!("LHM Path: {}", lhm_path.display());
         lhm_path.push(wrapper_path);
-        println!("LHM Path: {}", lhm_path.display());
         debug!("Starting LHM Wrapper from {:?}", lhm_path) ;
         let mut child = ProcessCommand::new(&lhm_path)
             .arg("--log=error")
@@ -171,7 +167,7 @@ impl LhmHelper {
         self.send_command(Command::Update)
     }
 
-    pub fn disconnect(mut self) -> io::Result<()> {
+    pub fn disconnect(&mut self) -> io::Result<()> {
         let _ = self.send_command(Command::Shutdown);
         self.process_handle.kill()?;
         Ok(())

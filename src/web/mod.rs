@@ -21,6 +21,7 @@ const DEFAULT_ID: &str = "__default_id__";
 pub enum RequestKind {
     GetInfo,
     ExecuteTool,
+    Shutdown,
 }
 
 pub fn handle_request(line: String) -> Result<Response, Response> {

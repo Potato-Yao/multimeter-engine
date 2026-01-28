@@ -1,10 +1,10 @@
 use crate::monitor::{QueryRequest, query_info};
-use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 use crate::web::RequestKind;
 use crate::web::model::{Request, Response};
 use crate::web::{LATEST_VERSION, NOT_FOUND_STATE, SUCCESS_STATE};
 use log::debug;
+use crate::shutdown;
 
 pub fn execute_request(req: Request) -> Result<Response, Response> {
     debug!("Request is executing: {:?}", req);
@@ -33,7 +33,10 @@ fn handle_v1_request(req: Request) -> Result<Response, Response> {
         }),
         RequestKind::ExecuteTool => {
             todo!()
-        }
+        },
+        RequestKind::Shutdown => {
+            shutdown()
+        },
     }
     .map_err(|e| Response {
         version: req.version,

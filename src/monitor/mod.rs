@@ -1,7 +1,8 @@
+use crate::get_running_flag;
 use crate::monitor::windows::Windows;
 use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use lazy_static::lazy_static;
 use log::{debug, error};
 use std::collections::HashMap;
@@ -22,6 +23,8 @@ pub struct QueryRequest {
 
 trait Updater: Send + Sync {
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
+
+    fn shutdown(&mut self) -> Result<()>;
 }
 
 static QUERY_MANAGER: OnceLock<Arc<Mutex<dyn Updater>>> = OnceLock::new();
@@ -67,7 +70,11 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
     }
 }
 
-fn init() -> Result<()> {
+pub fn init() -> Result<()> {
+    if QUERY_MANAGER.get().is_some() {
+        return Ok(());
+    }
+
     debug!("Initializing Query Manager");
     #[cfg(windows)]
     let manager = Windows::build()?;
@@ -82,7 +89,7 @@ fn init() -> Result<()> {
         }
     }
     thread::spawn(move || {
-        loop {
+        while get_running_flag() {
             {
                 let mut mgr = manager.lock().unwrap();
                 let mut map = INFO_MAP.lock().unwrap();
@@ -93,6 +100,18 @@ fn init() -> Result<()> {
             thread::sleep(Duration::from_millis(500));
         }
     });
+
+    Ok(())
+}
+
+pub fn shutdown() -> Result<()> {
+    #[cfg(windows)]
+    {
+        if let Some(manager) = QUERY_MANAGER.get() {
+            let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
+            return mgr.shutdown();
+        }
+    }
 
     Ok(())
 }

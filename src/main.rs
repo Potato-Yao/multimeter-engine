@@ -1,6 +1,6 @@
-use log::info;
+use log::{debug, info};
+use multimeter_engine::{handle_request, monitor};
 use tokio::net::TcpListener;
-use multimeter_engine::handle_request;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -9,12 +9,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(debug_assertions))]
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
-    let listener = TcpListener::bind("127.0.0.1:8080").await?;
-    info!("Server starts at 127.0.0.1:8080");
+    info!("Starting Multimeter Engine Server");
+    debug!("Initializing monitor");
+    monitor::init()?;
 
-    loop {
+    let listener = TcpListener::bind("127.0.0.1:8080").await?;
+    info!("Server starts at {}", listener.local_addr()?);
+    println!("Server starts at {}", listener.local_addr()?);
+
+    while multimeter_engine::get_running_flag() {
         let (socket, _) = listener.accept().await?;
 
         handle_request(socket);
     }
+
+    Ok(())
 }
