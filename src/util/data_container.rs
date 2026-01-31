@@ -7,6 +7,7 @@ pub enum DataContainer {
     Float(f64),
     Text(String),
     Boolean(bool),
+    Array(Vec<DataContainer>),
 }
 
 impl From<i32> for DataContainer {
@@ -46,6 +47,11 @@ impl From<DataContainer> for String {
             DataContainer::Float(v) => v.to_string(),
             DataContainer::Text(v) => v,
             DataContainer::Boolean(v) => v.to_string(),
+            DataContainer::Array(v) => v
+                .into_iter()
+                .map(|item| String::from(item))
+                .collect::<Vec<String>>()
+                .join(", "),
         }
     }
 }

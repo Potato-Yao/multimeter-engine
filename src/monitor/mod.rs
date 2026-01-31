@@ -43,10 +43,13 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         init()?;
     }
 
+    debug!("Info map: {:?}", INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?);
+
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
         // add special handling here
 
         let map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
+
         if let Some(value) = map.get(request.target.as_str()) {
             if let Some(data) = value {
                 Ok(PayLoad {
@@ -117,45 +120,37 @@ pub fn shutdown() -> Result<()> {
 }
 
 lazy_static! {
+    // THE CODE BELOW IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
     pub static ref QUERY_STATEMENTS: Vec<&'static str> = vec![
-        "cpu_name",
-        "cpu_load_total",
-        "cpu_temperature",
-        "cpu_power",
-        "cpu_voltage",
-        "cpu_clock_avg",
-        "cpu_clock_rms",
-        "cpu_clock_max",
-        "cpu_usage",
-        "gpu_name",
-        "gpu_temperature",
-        "gpu_power",
-        "gpu_voltage",
-        "gpu_clock_rms",
-        "mem_total",
-        "mem_available",
+        "bat_capacity_designed",
         "bat_capacity_max",
         "bat_capacity_remain",
-        "bat_capacity_designed",
-        "bat_voltage",
         "bat_rate",
-        "bat_state",
-        "os_activated",
-        "disk_partition",
-        "disk_disk",
-        "disk_partition_detail",
-        "disk_disk_detail",
+        "bat_voltage",
+        "cpu_clock_first",
+        "cpu_clock_last",
+        "cpu_power",
+        "cpu_temperature",
+        "cpu_temperature_first",
+        "cpu_temperature_last",
+        "cpu_tjmax_first",
+        "cpu_tjmax_last",
+        "cpu_usage",
+        "cpu_usage_first",
+        "cpu_usage_last",
+        "cpu_voltage",
+        "cpu_voltage_first",
+        "cpu_voltage_last",
+        "disk_temperature_first",
+        "disk_temperature_last",
+        "gpu_clock_rms",
+        "gpu_mem_clock_rms",
+        "gpu_power",
+        "gpu_temperature",
+        "gpu_usage",
+        "mem_available",
     ];
-    pub static ref INTERNAL_QUERY_STATEMENTS: Vec<&'static str> = {
-        let mut v = QUERY_STATEMENTS.clone();
-        #[cfg(windows)]
-        {
-            v.push("clock_begin_index");
-            v.push("clock_end_index");
-        }
-
-        v
-    };
+    // THE CODE ABOVE IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
 }
 
 #[cfg(test)]

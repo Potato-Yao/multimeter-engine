@@ -410,6 +410,7 @@ dependencies = [
  "lazy_static",
  "libc 1.0.0-alpha.2",
  "log",
+ "regex",
  "serde",
  "serde_json",
  "shell-words",
