@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::process::{Child, Command as ProcessCommand, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
-use log::debug;
+use log::{debug, trace};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
@@ -148,6 +148,7 @@ impl LhmHelper {
                 "No data received",
             ));
         }
+        trace!("{}", json.trim());
         Ok(json.trim().to_string())
     }
 

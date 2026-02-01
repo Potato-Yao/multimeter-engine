@@ -4,7 +4,7 @@ use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
 use lazy_static::lazy_static;
-use log::{debug, error};
+use log::{debug, error, trace};
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
@@ -47,7 +47,7 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         init()?;
     }
 
-    // debug!("Info map: {:?}", INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?);
+    trace!("Info map: {:?}", INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?);
 
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
         // add special handling here
