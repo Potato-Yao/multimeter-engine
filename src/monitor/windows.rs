@@ -1,12 +1,14 @@
-use anyhow::{Result, anyhow};
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
 use crate::external_program::lhm_helper::LhmHelper;
+use crate::external_program::program::{ExternalProgram, ProgramKind};
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
 use crate::util::data_container::DataContainer;
+use anyhow::{Result, anyhow};
+use log::debug;
+use regex::Regex;
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 #[cfg(windows)]
 #[derive(Debug, Clone, Deserialize)]
@@ -34,10 +36,14 @@ struct WindowsPayload {
 
 impl Updater for Windows {
     fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        self.set_activation_state(map);
+
         Ok(())
     }
 
     fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        self.set_disk_info(map);
+
         Ok(())
     }
 
@@ -49,69 +55,11 @@ impl Updater for Windows {
             {
                 let value = self.query_sensor_value(*index).map_err(|e| anyhow!(e))?;
                 *v = Some(DataContainer::from(value));
-            } else {
-                *v = None;
             }
         }
 
         self.set_battery_state(map);
-
-        let clock_begin = *self.index_map.get("cpu_clock_first").unwrap();
-        let clock_end = *self.index_map.get("cpu_clock_last").unwrap();
-
-        if clock_begin != -1 && clock_end != -1 {
-            let mut clocks = Vec::new();
-            for index in clock_begin..=clock_end {
-                let value = self.query_sensor_value(index).map_err(|e| anyhow!(e))?;
-                clocks.push(value);
-            }
-            let clock_avg = clocks.iter().sum::<f64>() / clocks.len() as f64;
-            map.insert(
-                "cpu_clock_avg",
-                if !clocks.is_empty() {
-                    Some(DataContainer::Float(clock_avg))
-                } else {
-                    None
-                },
-            );
-            map.insert(
-                "cpu_clock_max",
-                if !clocks.is_empty() {
-                    Some(DataContainer::Float(
-                        *clocks
-                            .iter()
-                            .max_by(|a, b| a.partial_cmp(b).unwrap())
-                            .unwrap(),
-                    ))
-                } else {
-                    None
-                },
-            );
-            map.insert(
-                "cpu_clock_rms",
-                if clocks.len() > 3 {
-                    clocks.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                    clocks.reverse();
-                    let mut rms;
-                    if clocks[0] - clocks[1] > 500.0 {
-                        rms =
-                            (clocks[0] * 0.3 + clocks[1] * 0.4 + clocks[2] * 0.2 + clocks[3] * 0.1)
-                                / 1000.0;
-                    } else {
-                        rms = (clocks[0] * 0.35
-                            + clocks[1] * 0.35
-                            + clocks[2] * 0.2
-                            + clocks[3] * 0.1)
-                            / 1000.0;
-                    }
-                    Some(DataContainer::Float(rms))
-                } else if clocks.is_empty() {
-                    None
-                } else {
-                    Some(DataContainer::Float(clock_avg))
-                },
-            );
-        }
+        self.set_cpu_clock(map)?;
 
         Ok(())
     }
@@ -204,8 +152,12 @@ impl Windows {
                 map.insert("gpu_mem_clock_rms".to_string(), sensor.index);
             } else if sensor.name == "GPU Core" && sensor.info == "Load" {
                 map.insert("gpu_usage".to_string(), sensor.index);
+            } else if sensor.name == "Memory" && sensor.info == "Load" {
+                map.insert("mem_percentage".to_string(), sensor.index);
             } else if sensor.name == "Memory Available" && sensor.info == "Data" {
                 map.insert("mem_available".to_string(), sensor.index);
+            } else if sensor.name == "Memory Used" && sensor.info == "Data" {
+                map.insert("mem_used".to_string(), sensor.index);
             } else if sensor.name == "Fully-Charged Capacity" && sensor.info == "Energy" {
                 map.insert("bat_capacity_max".to_string(), sensor.index);
             } else if sensor.name == "Remaining Capacity" && sensor.info == "Energy" {
@@ -260,6 +212,138 @@ impl Windows {
 
             self.payload.prev_bat_capacity = capacity;
         }
+    }
+
+    fn set_cpu_clock(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        let clock_begin = *self.index_map.get("cpu_clock_first").unwrap();
+        let clock_end = *self.index_map.get("cpu_clock_last").unwrap();
+
+        if clock_begin != -1 && clock_end != -1 {
+            let mut clocks = Vec::new();
+            for index in clock_begin..=clock_end {
+                let value = self.query_sensor_value(index).map_err(|e| anyhow!(e))?;
+                clocks.push(value);
+            }
+            let clock_avg = clocks.iter().sum::<f64>() / clocks.len() as f64;
+            map.insert(
+                "cpu_clock_avg",
+                if !clocks.is_empty() {
+                    Some(DataContainer::Float(clock_avg))
+                } else {
+                    None
+                },
+            );
+            map.insert(
+                "cpu_clock_max",
+                if !clocks.is_empty() {
+                    Some(DataContainer::Float(
+                        *clocks
+                            .iter()
+                            .max_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap(),
+                    ))
+                } else {
+                    None
+                },
+            );
+            map.insert(
+                "cpu_clock_rms",
+                if clocks.len() > 3 {
+                    clocks.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    clocks.reverse();
+                    let rms;
+                    if clocks[0] - clocks[1] > 500.0 {
+                        rms =
+                            (clocks[0] * 0.3 + clocks[1] * 0.4 + clocks[2] * 0.2 + clocks[3] * 0.1)
+                                / 1000.0;
+                    } else {
+                        rms = (clocks[0] * 0.35
+                            + clocks[1] * 0.35
+                            + clocks[2] * 0.2
+                            + clocks[3] * 0.1)
+                            / 1000.0;
+                    }
+                    Some(DataContainer::Float(rms))
+                } else if clocks.is_empty() {
+                    None
+                } else {
+                    Some(DataContainer::Float(clock_avg))
+                },
+            );
+        }
+        Ok(())
+    }
+
+    fn set_activation_state(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) {
+        let mut slmgr = ExternalProgram::new_transient(
+            "cscript".to_string(),
+            ProgramKind::Command,
+            vec![vec![
+                "//NoLogo".to_string(),
+                "C:\\Windows\\System32\\slmgr.vbs".to_string(),
+                "/xpr".to_string(),
+            ]],
+        );
+        match slmgr.start(0) {
+            Ok(output) => {
+                if output.contains("permanently activated") {
+                    map.insert("os_activated", Some(DataContainer::Boolean(true)));
+                } else {
+                    map.insert("os_activated", Some(DataContainer::Boolean(false)));
+                }
+            }
+            Err(e) => {
+                debug!("Failed to query OS activation status with error {:?}", e);
+            }
+        }
+    }
+
+    fn set_disk_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) {
+        let mut diskpart = ExternalProgram::new_interpreter(
+            "diskpart".to_string(),
+            ProgramKind::Command,
+            vec![vec![]],
+        );
+        if let Err(e) = diskpart.start(0) {
+            debug!("Failed to start diskpart with error {:?}", e);
+        } else {
+            diskpart
+                .consume_initial_output("DISKPART>".to_string())
+                .unwrap();
+
+            match diskpart.interact("list disk".to_string(), Some("DISKPART>".to_string())) {
+                Ok(output) => {
+                    let mut res = Vec::new();
+                    let reg = Regex::new(r"\s+").unwrap();
+                    let output: Vec<&str> = output.trim().split("\n").collect();
+                    for i in 2..output.len() {
+                        // ignore title lines
+                        let line: Vec<&str> = reg.split(output[i].trim()).collect();
+                        if line[0] == "Disk" && line.len() >= 4 {
+                            // so it is disk info line
+                            res.push(line[3]);
+                        }
+                    }
+
+                    map.insert(
+                        "disk_disk_size",
+                        if !res.is_empty() {
+                            let sizes: Vec<DataContainer> = res
+                                .iter()
+                                .map(|s| DataContainer::from(s.parse::<f64>().unwrap()))
+                                .collect();
+                            Some(DataContainer::Array(sizes))
+                        } else {
+                            None
+                        },
+                    );
+                }
+                Err(e) => {
+                    debug!("Failed to query disk information with error {:?}", e);
+                }
+            }
+        }
+        diskpart.close();
     }
 }
 

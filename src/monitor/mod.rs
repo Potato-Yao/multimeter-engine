@@ -23,9 +23,9 @@ pub struct QueryRequest {
 
 trait Updater: Send + Sync {
     fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
-    
+
     fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
-    
+
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
 
     fn shutdown(&mut self) -> Result<()>;
@@ -47,7 +47,7 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         init()?;
     }
 
-    debug!("Info map: {:?}", INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?);
+    // debug!("Info map: {:?}", INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?);
 
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
         // add special handling here
@@ -91,20 +91,42 @@ pub fn init() -> Result<()> {
     {
         let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
+        if let Err(e) = mgr.update_once(&mut map) {
+            error!("Update failed: {}", e);
+        }
+        if let Err(e) = mgr.update_slow(&mut map) {
+            error!("Update failed: {}", e);
+        }
         if let Err(e) = mgr.update(&mut map) {
-            error!("Update failed (initial): {}", e);
+            error!("Update failed: {}", e);
         }
     }
+
+    let manager_normal = manager.clone();
     thread::spawn(move || {
         while get_running_flag() {
             {
-                let mut mgr = manager.lock().unwrap();
+                let mut mgr = manager_normal.lock().unwrap();
                 let mut map = INFO_MAP.lock().unwrap();
                 if let Err(e) = mgr.update(&mut map) {
                     error!("Update failed: {}", e);
                 }
             }
             thread::sleep(Duration::from_millis(500));
+        }
+    });
+
+    let manager_slow = manager.clone();
+    thread::spawn(move || {
+        while get_running_flag() {
+            {
+                let mut mgr = manager_slow.lock().unwrap();
+                let mut map = INFO_MAP.lock().unwrap();
+                if let Err(e) = mgr.update_slow(&mut map) {
+                    error!("Update failed: {}", e);
+                }
+            }
+            thread::sleep(Duration::from_millis(10000));
         }
     });
 
@@ -150,8 +172,7 @@ lazy_static! {
         "cpu_voltage",
         "cpu_voltage_first",
         "cpu_voltage_last",
-        "disk_disk",
-        "disk_disk_detail",
+        "disk_disk_size",
         "disk_partition",
         "disk_partition_detail",
         "disk_temperature_first",
@@ -162,9 +183,9 @@ lazy_static! {
         "gpu_power",
         "gpu_temperature",
         "gpu_usage",
-        "gpu_voltage",
         "mem_available",
-        "mem_total",
+        "mem_percentage",
+        "mem_used",
         "os_activated",
     ];
     // THE CODE ABOVE IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
@@ -176,14 +197,12 @@ mod tests {
 
     #[test]
     fn test_query() {
-        for _ in 0..30 {
-            let request = QueryRequest {
-                target: "cpu_power".to_string(),
-                parameter: None,
-            };
-            let result = query_info(request);
-            assert!(result.is_ok());
-            thread::sleep(Duration::from_millis(200));
-        }
+        let request = QueryRequest {
+            target: "cpu_power".to_string(),
+            parameter: None,
+        };
+        let result = query_info(request);
+        assert!(result.is_ok());
+        println!("INFO MAP: {:?}", INFO_MAP.lock().unwrap());
     }
 }

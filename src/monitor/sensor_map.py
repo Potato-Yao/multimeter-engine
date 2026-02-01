@@ -26,12 +26,12 @@ sensors = [
     ("gpu_name", missing_item, missing_item, missing_item, "string"),
     ("gpu_temperature", "GPU Core", "equals", "Temperature", "double"),
     ("gpu_power", "GPU Package", "equals", "Power", "double"),
-    ("gpu_voltage", missing_item, missing_item, missing_item, "double"),
     ("gpu_clock_rms", "GPU Core", "equals", "Clock", "double"),
     ("gpu_mem_clock_rms", "GPU Memory", "equals", "Clock", "double"),
     ("gpu_usage", "GPU Core", "equals", "Load", "double"),
-    ("mem_total", missing_item, missing_item, missing_item, "double"),
+    ("mem_percentage", "Memory", "equals", "Load", "double"),
     ("mem_available", "Memory Available", "equals", "Data", "double"),
+    ("mem_used", "Memory Used", "equals", "Data", "double"),
     ("bat_capacity_max", "Fully-Charged Capacity", "equals", "Energy", "double"),
     ("bat_capacity_remain", "Remaining Capacity", "equals", "Energy", "double"),
     ("bat_capacity_designed", "Designed Capacity", "equals", "Energy", "double"),
@@ -44,9 +44,8 @@ sensors = [
     ("disk_temperature_first", "Temperature 1", "equals", "Temperature", "double"),
     ("disk_temperature_last", r"^Temperature \d{1,2}$", "match", "Temperature", "double"),
     ("disk_partition", missing_item, missing_item, missing_item, "string array"),
-    ("disk_disk", missing_item, missing_item, missing_item, "string array"),
+    ("disk_disk_size", missing_item, missing_item, missing_item, "string array"),
     ("disk_partition_detail", missing_item, missing_item, missing_item, "string array"),
-    ("disk_disk_detail", missing_item, missing_item, missing_item, "string array"),
 ]
 
 
