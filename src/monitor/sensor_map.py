@@ -3,49 +3,50 @@ from pathlib import Path
 
 missing_item = "__MISSING__"
 
+# (query_name, match_name, match_type, info_check, type)
 sensors = [
-    (missing_item, missing_item, missing_item, "cpu_name", "string"),
-    ("CPU Package", "equals", "Temperature", "cpu_temperature", "double"),
-    ("CPU Core #1", "equals", "Temperature", "cpu_temperature_first", "double"),
-    (r"^CPU Core #\d{1,2}$", "match", "Temperature", "cpu_temperature_last", "double"),
-    ("CPU Core #1 Distance to TjMax", "equals", "Temperature", "cpu_tjmax_first", "double"),
-    (r"^CPU Core #\d{1,2} Distance to TjMax", "match", "Temperature", "cpu_tjmax_last", "double"),
-    ("CPU Package", "equals", "Power", "cpu_power", "double"),
-    ("CPU Core #1", "equals", "Voltage", "cpu_voltage_first", "double"),
-    (r"^CPU Core #\d{1,2}$", "match", "Voltage", "cpu_voltage_last", "double"),
-    ("CPU Core", "equals", "Voltage", "cpu_voltage", "double"),
-    ("CPU Core #1", "equals", "Clock", "cpu_clock_first", "double"),
-    (r"^CPU Core #\d{1,2}$", "match", "Clock", "cpu_clock_last", "double"),
-    (missing_item, missing_item, missing_item, "cpu_clock_avg", "double"),
-    (missing_item, missing_item, missing_item, "cpu_clock_rms", "double"),
-    (missing_item, missing_item, missing_item, "cpu_clock_max", "double"),
-    ("CPU Total", "equals", "Load", "cpu_usage", "double"),
-    ("CPU Core #1", "equals", "Load", "cpu_usage_first", "double"),
-    (r"^CPU Core #\d{1,2}$", "match", "Load", "cpu_usage_last", "double"),
-    (missing_item, missing_item, missing_item, "gpu_name", "string"),
-    ("GPU Core", "equals", "Temperature", "gpu_temperature", "double"),
-    ("GPU Package", "equals", "Power", "gpu_power", "double"),
-    (missing_item, missing_item, missing_item, "gpu_voltage", "double"),
-    ("GPU Core", "equals", "Clock", "gpu_clock_rms", "double"),
-    ("GPU Memory", "equals", "Clock", "gpu_mem_clock_rms", "double"),
-    ("GPU Core", "equals", "Load", "gpu_usage", "double"),
-    (missing_item, missing_item, missing_item, "mem_total", "double"),
-    ("Memory Available", "equals", "Data", "mem_available", "double"),
-    ("Fully-Charged Capacity", "equals", "Energy", "bat_capacity_max", "double"),
-    ("Remaining Capacity", "equals", "Energy", "bat_capacity_remain", "double"),
-    ("Designed Capacity", "equals", "Energy", "bat_capacity_designed", "double"),
-    ("Voltage", "equals", "Voltage", "bat_voltage", "double"),
-    ("Charge Rate", "equals", "Power", "bat_rate", "double"),
-    ("Discharge Rate", "equals", "Power", "bat_rate", "double"),
-    ("Charge/Discharge Rate", "equals", "Power", "bat_rate", "double"),
-    (missing_item, missing_item, missing_item, "bat_state", "boolean"),
-    (missing_item, missing_item, missing_item, "os_activated", "boolean"),
-    ("Temperature 1", "equals", "Temperature", "disk_temperature_first", "double"),
-    (r"^Temperature \d{1,2}$", "match", "Temperature", "disk_temperature_last", "double"),
-    (missing_item, missing_item, missing_item, "disk_partition", "string array"),
-    (missing_item, missing_item, missing_item, "disk_disk", "string array"),
-    (missing_item, missing_item, missing_item, "disk_partition_detail", "string array"),
-    (missing_item, missing_item, missing_item, "disk_disk_detail", "string array"),
+    ("cpu_name", missing_item, missing_item, missing_item, "string"),
+    ("cpu_temperature", "CPU Package", "equals", "Temperature", "double"),
+    ("cpu_temperature_first", "CPU Core #1", "equals", "Temperature", "double"),
+    ("cpu_temperature_last", r"^CPU Core #\d{1,2}$", "match", "Temperature", "double"),
+    ("cpu_tjmax_first", "CPU Core #1 Distance to TjMax", "equals", "Temperature", "double"),
+    ("cpu_tjmax_last", r"^CPU Core #\d{1,2} Distance to TjMax", "match", "Temperature", "double"),
+    ("cpu_power", "CPU Package", "equals", "Power", "double"),
+    ("cpu_voltage_first", "CPU Core #1", "equals", "Voltage", "double"),
+    ("cpu_voltage_last", r"^CPU Core #\d{1,2}$", "match", "Voltage", "double"),
+    ("cpu_voltage", "CPU Core", "equals", "Voltage", "double"),
+    ("cpu_clock_first", "CPU Core #1", "equals", "Clock", "double"),
+    ("cpu_clock_last", r"^CPU Core #\d{1,2}$", "match", "Clock", "double"),
+    ("cpu_clock_avg", missing_item, missing_item, missing_item, "double"),
+    ("cpu_clock_rms", missing_item, missing_item, missing_item, "double"),
+    ("cpu_clock_max", missing_item, missing_item, missing_item, "double"),
+    ("cpu_usage", "CPU Total", "equals", "Load", "double"),
+    ("cpu_usage_first", "CPU Core #1", "equals", "Load", "double"),
+    ("cpu_usage_last", r"^CPU Core #\d{1,2}$", "match", "Load", "double"),
+    ("gpu_name", missing_item, missing_item, missing_item, "string"),
+    ("gpu_temperature", "GPU Core", "equals", "Temperature", "double"),
+    ("gpu_power", "GPU Package", "equals", "Power", "double"),
+    ("gpu_voltage", missing_item, missing_item, missing_item, "double"),
+    ("gpu_clock_rms", "GPU Core", "equals", "Clock", "double"),
+    ("gpu_mem_clock_rms", "GPU Memory", "equals", "Clock", "double"),
+    ("gpu_usage", "GPU Core", "equals", "Load", "double"),
+    ("mem_total", missing_item, missing_item, missing_item, "double"),
+    ("mem_available", "Memory Available", "equals", "Data", "double"),
+    ("bat_capacity_max", "Fully-Charged Capacity", "equals", "Energy", "double"),
+    ("bat_capacity_remain", "Remaining Capacity", "equals", "Energy", "double"),
+    ("bat_capacity_designed", "Designed Capacity", "equals", "Energy", "double"),
+    ("bat_voltage", "Voltage", "equals", "Voltage", "double"),
+    ("bat_rate", "Charge Rate", "equals", "Power", "double"),
+    ("bat_rate", "Discharge Rate", "equals", "Power", "double"),
+    ("bat_rate", "Charge/Discharge Rate", "equals", "Power", "double"),
+    ("bat_state", missing_item, missing_item, missing_item, "boolean"),
+    ("os_activated", missing_item, missing_item, missing_item, "boolean"),
+    ("disk_temperature_first", "Temperature 1", "equals", "Temperature", "double"),
+    ("disk_temperature_last", r"^Temperature \d{1,2}$", "match", "Temperature", "double"),
+    ("disk_partition", missing_item, missing_item, missing_item, "string array"),
+    ("disk_disk", missing_item, missing_item, missing_item, "string array"),
+    ("disk_partition_detail", missing_item, missing_item, missing_item, "string array"),
+    ("disk_disk_detail", missing_item, missing_item, missing_item, "string array"),
 ]
 
 
@@ -53,8 +54,8 @@ def warning_message(pos: str) -> str:
     return f"// THE CODE {pos} IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD"
 
 
-def get_valid_sensors():
-    return [s for s in sensors if s[0] != missing_item]
+def get_valid_lhm_sensors():
+    return [s for s in sensors if s[1] != missing_item]
 
 
 def gen_windows_block() -> str:
@@ -63,16 +64,17 @@ def gen_windows_block() -> str:
 
     lines: list[str] = [below_warning]
 
-    matches = [s for s in  sensors if s[1] == "match"]
+    matches = [s for s in sensors if s[2] == "match"]
     for sensor in matches:
-        lines.append(f"let regex_{sensor[3]} = regex::Regex::new(r\"{sensor[0]}\").unwrap();")
+        query_name, match_name, _match_type, _info_check, _ty = sensor
+        lines.append(f"let regex_{query_name} = regex::Regex::new(r\"{match_name}\").unwrap();")
 
     lines.append(r"for sensor in sensors {")
 
-    valid = get_valid_sensors()
+    valid = get_valid_lhm_sensors()
 
     for i, sensor in enumerate(valid):
-        name_check, match_type, info_check, query_name, _ty = sensor
+        query_name, name_check, match_type, info_check, _ty = sensor
 
         if match_type == "equals":
             name_condition = f'sensor.name == "{name_check}"'
@@ -101,8 +103,7 @@ def gen_mod_block() -> str:
     below_warning = warning_message("BELOW")
     above_warning = warning_message("ABOVE")
 
-    valid = get_valid_sensors()
-    names = [s[3] for s in valid]
+    names = [s[0] for s in sensors]
 
     unique_sorted = sorted(set(names))
 

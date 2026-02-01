@@ -22,6 +22,10 @@ pub struct QueryRequest {
 }
 
 trait Updater: Send + Sync {
+    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
+    
+    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
+    
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
 
     fn shutdown(&mut self) -> Result<()>;
@@ -126,9 +130,14 @@ lazy_static! {
         "bat_capacity_max",
         "bat_capacity_remain",
         "bat_rate",
+        "bat_state",
         "bat_voltage",
+        "cpu_clock_avg",
         "cpu_clock_first",
         "cpu_clock_last",
+        "cpu_clock_max",
+        "cpu_clock_rms",
+        "cpu_name",
         "cpu_power",
         "cpu_temperature",
         "cpu_temperature_first",
@@ -141,14 +150,22 @@ lazy_static! {
         "cpu_voltage",
         "cpu_voltage_first",
         "cpu_voltage_last",
+        "disk_disk",
+        "disk_disk_detail",
+        "disk_partition",
+        "disk_partition_detail",
         "disk_temperature_first",
         "disk_temperature_last",
         "gpu_clock_rms",
         "gpu_mem_clock_rms",
+        "gpu_name",
         "gpu_power",
         "gpu_temperature",
         "gpu_usage",
+        "gpu_voltage",
         "mem_available",
+        "mem_total",
+        "os_activated",
     ];
     // THE CODE ABOVE IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
 }

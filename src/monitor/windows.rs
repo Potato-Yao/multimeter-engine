@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::external_program::lhm_helper::LhmHelper;
-use crate::monitor::{Updater, QUERY_STATEMENTS};
+use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
 use crate::util::data_container::DataContainer;
 use serde::Deserialize;
@@ -24,9 +24,23 @@ struct Sensor {
 pub struct Windows {
     index_map: HashMap<String, i32>,
     lhm_helper: LhmHelper,
+    payload: WindowsPayload,
+}
+
+#[derive(Default)]
+struct WindowsPayload {
+    prev_bat_capacity: f64,
 }
 
 impl Updater for Windows {
+    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        Ok(())
+    }
+
+    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        Ok(())
+    }
+
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         self.lhm_helper.update()?;
         for (k, v) in map.iter_mut() {
@@ -38,6 +52,65 @@ impl Updater for Windows {
             } else {
                 *v = None;
             }
+        }
+
+        self.set_battery_state(map);
+
+        let clock_begin = *self.index_map.get("cpu_clock_first").unwrap();
+        let clock_end = *self.index_map.get("cpu_clock_last").unwrap();
+
+        if clock_begin != -1 && clock_end != -1 {
+            let mut clocks = Vec::new();
+            for index in clock_begin..=clock_end {
+                let value = self.query_sensor_value(index).map_err(|e| anyhow!(e))?;
+                clocks.push(value);
+            }
+            let clock_avg = clocks.iter().sum::<f64>() / clocks.len() as f64;
+            map.insert(
+                "cpu_clock_avg",
+                if !clocks.is_empty() {
+                    Some(DataContainer::Float(clock_avg))
+                } else {
+                    None
+                },
+            );
+            map.insert(
+                "cpu_clock_max",
+                if !clocks.is_empty() {
+                    Some(DataContainer::Float(
+                        *clocks
+                            .iter()
+                            .max_by(|a, b| a.partial_cmp(b).unwrap())
+                            .unwrap(),
+                    ))
+                } else {
+                    None
+                },
+            );
+            map.insert(
+                "cpu_clock_rms",
+                if clocks.len() > 3 {
+                    clocks.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    clocks.reverse();
+                    let mut rms;
+                    if clocks[0] - clocks[1] > 500.0 {
+                        rms =
+                            (clocks[0] * 0.3 + clocks[1] * 0.4 + clocks[2] * 0.2 + clocks[3] * 0.1)
+                                / 1000.0;
+                    } else {
+                        rms = (clocks[0] * 0.35
+                            + clocks[1] * 0.35
+                            + clocks[2] * 0.2
+                            + clocks[3] * 0.1)
+                            / 1000.0;
+                    }
+                    Some(DataContainer::Float(rms))
+                } else if clocks.is_empty() {
+                    None
+                } else {
+                    Some(DataContainer::Float(clock_avg))
+                },
+            );
         }
 
         Ok(())
@@ -67,6 +140,7 @@ impl Windows {
         let manager = Windows {
             index_map,
             lhm_helper,
+            payload: WindowsPayload::default(),
         };
 
         let manager = Arc::new(Mutex::new(manager));
@@ -82,7 +156,8 @@ impl Windows {
 
         // THE CODE BELOW IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
         let regex_cpu_temperature_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
-        let regex_cpu_tjmax_last = regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
+        let regex_cpu_tjmax_last =
+            regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
         let regex_cpu_voltage_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_clock_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_usage_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
@@ -92,9 +167,12 @@ impl Windows {
                 map.insert("cpu_temperature".to_string(), sensor.index);
             } else if sensor.name == "CPU Core #1" && sensor.info == "Temperature" {
                 map.insert("cpu_temperature_first".to_string(), sensor.index);
-            } else if regex_cpu_temperature_last.is_match(&sensor.name) && sensor.info == "Temperature" {
+            } else if regex_cpu_temperature_last.is_match(&sensor.name)
+                && sensor.info == "Temperature"
+            {
                 map.insert("cpu_temperature_last".to_string(), sensor.index);
-            } else if sensor.name == "CPU Core #1 Distance to TjMax" && sensor.info == "Temperature" {
+            } else if sensor.name == "CPU Core #1 Distance to TjMax" && sensor.info == "Temperature"
+            {
                 map.insert("cpu_tjmax_first".to_string(), sensor.index);
             } else if regex_cpu_tjmax_last.is_match(&sensor.name) && sensor.info == "Temperature" {
                 map.insert("cpu_tjmax_last".to_string(), sensor.index);
@@ -144,7 +222,9 @@ impl Windows {
                 map.insert("bat_rate".to_string(), sensor.index);
             } else if sensor.name == "Temperature 1" && sensor.info == "Temperature" {
                 map.insert("disk_temperature_first".to_string(), sensor.index);
-            } else if regex_disk_temperature_last.is_match(&sensor.name) && sensor.info == "Temperature" {
+            } else if regex_disk_temperature_last.is_match(&sensor.name)
+                && sensor.info == "Temperature"
+            {
                 map.insert("disk_temperature_last".to_string(), sensor.index);
             }
         }
@@ -157,6 +237,29 @@ impl Windows {
         let value = self.lhm_helper.get_value(index)?;
 
         Ok(value)
+    }
+
+    fn set_battery_state(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) {
+        let capacity = match map.get("bat_capacity_remain").and_then(|v| v.as_ref()) {
+            Some(DataContainer::Float(v)) => Some(*v),
+            _ => None,
+        };
+        let rate = match map.get("bat_rate").and_then(|v| v.as_ref()) {
+            Some(DataContainer::Float(v)) => Some(*v),
+            _ => None,
+        };
+
+        if let (Some(capacity), Some(rate)) = (capacity, rate) {
+            let prev_capacity = self.payload.prev_bat_capacity;
+
+            if prev_capacity < capacity || rate == 0.0 {
+                map.insert("bat_state", Some(DataContainer::Boolean(true)));
+            } else if prev_capacity > capacity {
+                map.insert("bat_state", Some(DataContainer::Boolean(false)));
+            };
+
+            self.payload.prev_bat_capacity = capacity;
+        }
     }
 }
 
