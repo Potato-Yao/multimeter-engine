@@ -148,7 +148,7 @@ impl LhmHelper {
                 "No data received",
             ));
         }
-        trace!("{}", json.trim());
+        trace!("The hardware list: {}", json.trim());
         Ok(json.trim().to_string())
     }
 

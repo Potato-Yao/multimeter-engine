@@ -4,10 +4,12 @@ use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
 use crate::util::data_container::DataContainer;
 use anyhow::{Result, anyhow};
-use log::debug;
+use log::{debug, trace};
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::env;
+use std::fs::read_to_string;
 use std::sync::{Arc, Mutex};
 
 #[cfg(windows)]
@@ -82,8 +84,20 @@ impl Windows {
 
         let mut lhm_helper = LhmHelper::connect()?;
         let lhm_sensors_json = lhm_helper.query_hardware()?;
+
+        // let mut path = env::current_dir().unwrap();
+        // path.push("doc");
+        // path.push("hardware_lists");
+        // // path.push("i7-14650HX_RTX5060.json");
+        // // path.push("ultra7155H_RTX4060.json");
+        // // path.push("ultra9185H_RTX4060.json");
+        // path.push("R78745H_R780M.json");
+        // debug!("reading {:?}", path);
+        // let lhm_sensors_json = read_to_string(path)?;
+
         let sensors: Vec<Sensor> = serde_json::from_str(&lhm_sensors_json)?;
         let index_map = Self::build_index_map(&sensors);
+        trace!("The index map: {:?}", index_map);
 
         let manager = Windows {
             index_map,
@@ -107,10 +121,13 @@ impl Windows {
         let regex_cpu_tjmax_last = regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
         let regex_cpu_voltage_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_clock_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
+        let regex_cpu_clock_last = regex::Regex::new(r"^Core #\d{1,2}$").unwrap();
         let regex_cpu_usage_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_disk_temperature_last = regex::Regex::new(r"^Temperature \d{1,2}$").unwrap();
         for sensor in sensors {
             if sensor.name == "CPU Package" && sensor.info == "Temperature" {
+                map.insert("cpu_temperature".to_string(), sensor.index);
+            } else if sensor.name == "Core (Tctl/Tdie)" && sensor.info == "Temperature" {
                 map.insert("cpu_temperature".to_string(), sensor.index);
             } else if sensor.name == "CPU Core #1" && sensor.info == "Temperature" {
                 map.insert("cpu_temperature_first".to_string(), sensor.index);
@@ -122,14 +139,22 @@ impl Windows {
                 map.insert("cpu_tjmax_last".to_string(), sensor.index);
             } else if sensor.name == "CPU Package" && sensor.info == "Power" {
                 map.insert("cpu_power".to_string(), sensor.index);
+            } else if sensor.name == "Package" && sensor.info == "Power" {
+                map.insert("cpu_power".to_string(), sensor.index);
             } else if sensor.name == "CPU Core #1" && sensor.info == "Voltage" {
                 map.insert("cpu_voltage_first".to_string(), sensor.index);
             } else if regex_cpu_voltage_last.is_match(&sensor.name) && sensor.info == "Voltage" {
                 map.insert("cpu_voltage_last".to_string(), sensor.index);
             } else if sensor.name == "CPU Core" && sensor.info == "Voltage" {
                 map.insert("cpu_voltage".to_string(), sensor.index);
+            } else if sensor.name == "Core (SVI2 TFN)" && sensor.info == "Voltage" {
+                map.insert("cpu_voltage".to_string(), sensor.index);
             } else if sensor.name == "CPU Core #1" && sensor.info == "Clock" {
                 map.insert("cpu_clock_first".to_string(), sensor.index);
+            } else if sensor.name == "Core #1" && sensor.info == "Clock" {
+                map.insert("cpu_clock_first".to_string(), sensor.index);
+            } else if regex_cpu_clock_last.is_match(&sensor.name) && sensor.info == "Clock" {
+                map.insert("cpu_clock_last".to_string(), sensor.index);
             } else if regex_cpu_clock_last.is_match(&sensor.name) && sensor.info == "Clock" {
                 map.insert("cpu_clock_last".to_string(), sensor.index);
             } else if sensor.name == "CPU Total" && sensor.info == "Load" {
@@ -140,7 +165,11 @@ impl Windows {
                 map.insert("cpu_usage_last".to_string(), sensor.index);
             } else if sensor.name == "GPU Core" && sensor.info == "Temperature" {
                 map.insert("gpu_temperature".to_string(), sensor.index);
+            } else if sensor.name == "GPU VR SoC" && sensor.info == "Temperature" {
+                map.insert("gpu_temperature".to_string(), sensor.index);
             } else if sensor.name == "GPU Package" && sensor.info == "Power" {
+                map.insert("gpu_power".to_string(), sensor.index);
+            } else if sensor.name == "GPU Core" && sensor.info == "Power" {
                 map.insert("gpu_power".to_string(), sensor.index);
             } else if sensor.name == "GPU Core" && sensor.info == "Clock" {
                 map.insert("gpu_clock_rms".to_string(), sensor.index);

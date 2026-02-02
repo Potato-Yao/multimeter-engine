@@ -1,0 +1,1472 @@
+[
+    {
+        "Id": "HardwareInfo0",
+        "Name": "Lenovo LNVNB161216",
+        "Index": 0,
+        "Type": "Info",
+        "Info": "Motherboard"
+    },
+    {
+        "Id": "HardwareInfo1",
+        "Name": "Intel Core i7-14650HX",
+        "Index": 1,
+        "Type": "Info",
+        "Info": "Cpu"
+    },
+    {
+        "Id": "Load0",
+        "Name": "CPU Core #1 Thread #1",
+        "Index": 2,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load1",
+        "Name": "CPU Core #1 Thread #2",
+        "Index": 3,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load2",
+        "Name": "CPU Core #2 Thread #1",
+        "Index": 4,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load3",
+        "Name": "CPU Core #2 Thread #2",
+        "Index": 5,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load4",
+        "Name": "CPU Core #3 Thread #1",
+        "Index": 6,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load5",
+        "Name": "CPU Core #3 Thread #2",
+        "Index": 7,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load6",
+        "Name": "CPU Core #4 Thread #1",
+        "Index": 8,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load7",
+        "Name": "CPU Core #4 Thread #2",
+        "Index": 9,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load8",
+        "Name": "CPU Core #5 Thread #1",
+        "Index": 10,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load9",
+        "Name": "CPU Core #5 Thread #2",
+        "Index": 11,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load10",
+        "Name": "CPU Core #6 Thread #1",
+        "Index": 12,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load11",
+        "Name": "CPU Core #6 Thread #2",
+        "Index": 13,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load12",
+        "Name": "CPU Core #7 Thread #1",
+        "Index": 14,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load13",
+        "Name": "CPU Core #7 Thread #2",
+        "Index": 15,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load14",
+        "Name": "CPU Core #8 Thread #1",
+        "Index": 16,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load15",
+        "Name": "CPU Core #8 Thread #2",
+        "Index": 17,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load16",
+        "Name": "CPU Core #9",
+        "Index": 18,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load17",
+        "Name": "CPU Core #10",
+        "Index": 19,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load18",
+        "Name": "CPU Core #11",
+        "Index": 20,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load19",
+        "Name": "CPU Core #12",
+        "Index": 21,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load20",
+        "Name": "CPU Core #13",
+        "Index": 22,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load21",
+        "Name": "CPU Core #14",
+        "Index": 23,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load22",
+        "Name": "CPU Core #15",
+        "Index": 24,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load23",
+        "Name": "CPU Core #16",
+        "Index": 25,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load24",
+        "Name": "CPU Total",
+        "Index": 26,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load25",
+        "Name": "CPU Core Max",
+        "Index": 27,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Temperature0",
+        "Name": "Core Max",
+        "Index": 28,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature1",
+        "Name": "Core Average",
+        "Index": 29,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature2",
+        "Name": "CPU Core #1",
+        "Index": 30,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature3",
+        "Name": "CPU Core #2",
+        "Index": 31,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature4",
+        "Name": "CPU Core #3",
+        "Index": 32,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature5",
+        "Name": "CPU Core #4",
+        "Index": 33,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature6",
+        "Name": "CPU Core #5",
+        "Index": 34,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature7",
+        "Name": "CPU Core #6",
+        "Index": 35,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature8",
+        "Name": "CPU Core #7",
+        "Index": 36,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature9",
+        "Name": "CPU Core #8",
+        "Index": 37,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature10",
+        "Name": "CPU Core #9",
+        "Index": 38,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature11",
+        "Name": "CPU Core #10",
+        "Index": 39,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature12",
+        "Name": "CPU Core #11",
+        "Index": 40,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature13",
+        "Name": "CPU Core #12",
+        "Index": 41,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature14",
+        "Name": "CPU Core #13",
+        "Index": 42,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature15",
+        "Name": "CPU Core #14",
+        "Index": 43,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature16",
+        "Name": "CPU Core #15",
+        "Index": 44,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature17",
+        "Name": "CPU Core #16",
+        "Index": 45,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature18",
+        "Name": "CPU Package",
+        "Index": 46,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature19",
+        "Name": "CPU Core #1 Distance to TjMax",
+        "Index": 47,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature20",
+        "Name": "CPU Core #2 Distance to TjMax",
+        "Index": 48,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature21",
+        "Name": "CPU Core #3 Distance to TjMax",
+        "Index": 49,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature22",
+        "Name": "CPU Core #4 Distance to TjMax",
+        "Index": 50,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature23",
+        "Name": "CPU Core #5 Distance to TjMax",
+        "Index": 51,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature24",
+        "Name": "CPU Core #6 Distance to TjMax",
+        "Index": 52,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature25",
+        "Name": "CPU Core #7 Distance to TjMax",
+        "Index": 53,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature26",
+        "Name": "CPU Core #8 Distance to TjMax",
+        "Index": 54,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature27",
+        "Name": "CPU Core #9 Distance to TjMax",
+        "Index": 55,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature28",
+        "Name": "CPU Core #10 Distance to TjMax",
+        "Index": 56,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature29",
+        "Name": "CPU Core #11 Distance to TjMax",
+        "Index": 57,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature30",
+        "Name": "CPU Core #12 Distance to TjMax",
+        "Index": 58,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature31",
+        "Name": "CPU Core #13 Distance to TjMax",
+        "Index": 59,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature32",
+        "Name": "CPU Core #14 Distance to TjMax",
+        "Index": 60,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature33",
+        "Name": "CPU Core #15 Distance to TjMax",
+        "Index": 61,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature34",
+        "Name": "CPU Core #16 Distance to TjMax",
+        "Index": 62,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Clock0",
+        "Name": "CPU Core #1",
+        "Index": 63,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock1",
+        "Name": "CPU Core #2",
+        "Index": 64,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock2",
+        "Name": "CPU Core #3",
+        "Index": 65,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock3",
+        "Name": "CPU Core #4",
+        "Index": 66,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock4",
+        "Name": "CPU Core #5",
+        "Index": 67,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock5",
+        "Name": "CPU Core #6",
+        "Index": 68,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock6",
+        "Name": "CPU Core #7",
+        "Index": 69,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock7",
+        "Name": "CPU Core #8",
+        "Index": 70,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock8",
+        "Name": "CPU Core #9",
+        "Index": 71,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock9",
+        "Name": "CPU Core #10",
+        "Index": 72,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock10",
+        "Name": "CPU Core #11",
+        "Index": 73,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock11",
+        "Name": "CPU Core #12",
+        "Index": 74,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock12",
+        "Name": "CPU Core #13",
+        "Index": 75,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock13",
+        "Name": "CPU Core #14",
+        "Index": 76,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock14",
+        "Name": "CPU Core #15",
+        "Index": 77,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock15",
+        "Name": "CPU Core #16",
+        "Index": 78,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Power0",
+        "Name": "CPU Package",
+        "Index": 79,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "Power1",
+        "Name": "CPU Cores",
+        "Index": 80,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "Power2",
+        "Name": "CPU Memory",
+        "Index": 81,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "Power3",
+        "Name": "CPU Platform",
+        "Index": 82,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "Voltage0",
+        "Name": "CPU Core",
+        "Index": 83,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage1",
+        "Name": "CPU Core #1",
+        "Index": 84,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage2",
+        "Name": "CPU Core #2",
+        "Index": 85,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage3",
+        "Name": "CPU Core #3",
+        "Index": 86,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage4",
+        "Name": "CPU Core #4",
+        "Index": 87,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage5",
+        "Name": "CPU Core #5",
+        "Index": 88,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage6",
+        "Name": "CPU Core #6",
+        "Index": 89,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage7",
+        "Name": "CPU Core #7",
+        "Index": 90,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage8",
+        "Name": "CPU Core #8",
+        "Index": 91,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage9",
+        "Name": "CPU Core #9",
+        "Index": 92,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage10",
+        "Name": "CPU Core #10",
+        "Index": 93,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage11",
+        "Name": "CPU Core #11",
+        "Index": 94,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage12",
+        "Name": "CPU Core #12",
+        "Index": 95,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage13",
+        "Name": "CPU Core #13",
+        "Index": 96,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage14",
+        "Name": "CPU Core #14",
+        "Index": 97,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage15",
+        "Name": "CPU Core #15",
+        "Index": 98,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Voltage16",
+        "Name": "CPU Core #16",
+        "Index": 99,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Clock16",
+        "Name": "Bus Speed",
+        "Index": 100,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "HardwareInfo101",
+        "Name": "Virtual Memory",
+        "Index": 101,
+        "Type": "Info",
+        "Info": "Memory"
+    },
+    {
+        "Id": "Data0",
+        "Name": "Memory Used",
+        "Index": 102,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data1",
+        "Name": "Memory Available",
+        "Index": 103,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Load26",
+        "Name": "Memory",
+        "Index": 104,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo105",
+        "Name": "Total Memory",
+        "Index": 105,
+        "Type": "Info",
+        "Info": "Memory"
+    },
+    {
+        "Id": "Data2",
+        "Name": "Memory Used",
+        "Index": 106,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data3",
+        "Name": "Memory Available",
+        "Index": 107,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Load27",
+        "Name": "Memory",
+        "Index": 108,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo109",
+        "Name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+        "Index": 109,
+        "Type": "Info",
+        "Info": "GpuNvidia"
+    },
+    {
+        "Id": "Temperature35",
+        "Name": "GPU Core",
+        "Index": 110,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Clock17",
+        "Name": "GPU Core",
+        "Index": 111,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Clock18",
+        "Name": "GPU Memory",
+        "Index": 112,
+        "Type": "Sensor",
+        "Info": "Clock"
+    },
+    {
+        "Id": "Load28",
+        "Name": "GPU Core",
+        "Index": 113,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load29",
+        "Name": "GPU Memory Controller",
+        "Index": 114,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load30",
+        "Name": "GPU Video Engine",
+        "Index": 115,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load31",
+        "Name": "GPU Bus",
+        "Index": 116,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "SmallData0",
+        "Name": "D3D Dedicated Memory Used",
+        "Index": 117,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "SmallData1",
+        "Name": "D3D Shared Memory Used",
+        "Index": 118,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "Load32",
+        "Name": "D3D 3D",
+        "Index": 119,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load33",
+        "Name": "D3D Video Decode",
+        "Index": 120,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load34",
+        "Name": "D3D Copy",
+        "Index": 121,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load35",
+        "Name": "D3D Copy",
+        "Index": 122,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load36",
+        "Name": "D3D Security",
+        "Index": 123,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load37",
+        "Name": "D3D Video Encode",
+        "Index": 124,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load38",
+        "Name": "D3D Video Processing",
+        "Index": 125,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load39",
+        "Name": "D3D JPEG_Decode_0",
+        "Index": 126,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load40",
+        "Name": "D3D VR",
+        "Index": 127,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Temperature36",
+        "Name": "GPU Hot Spot",
+        "Index": 128,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature37",
+        "Name": "GPU Memory Junction",
+        "Index": 129,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "SmallData2",
+        "Name": "GPU Memory Total",
+        "Index": 130,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "SmallData3",
+        "Name": "GPU Memory Free",
+        "Index": 131,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "SmallData4",
+        "Name": "GPU Memory Used",
+        "Index": 132,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "Load41",
+        "Name": "GPU Memory",
+        "Index": 133,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Power4",
+        "Name": "GPU Package",
+        "Index": 134,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "Throughput0",
+        "Name": "GPU PCIe Rx",
+        "Index": 135,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput1",
+        "Name": "GPU PCIe Tx",
+        "Index": 136,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "HardwareInfo137",
+        "Name": "Intel(R) UHD Graphics",
+        "Index": 137,
+        "Type": "Info",
+        "Info": "GpuIntel"
+    },
+    {
+        "Id": "Power5",
+        "Name": "GPU Power",
+        "Index": 138,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "SmallData5",
+        "Name": "D3D Shared Memory Total",
+        "Index": 139,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "SmallData6",
+        "Name": "D3D Shared Memory Free",
+        "Index": 140,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "SmallData7",
+        "Name": "D3D Shared Memory Used",
+        "Index": 141,
+        "Type": "Sensor",
+        "Info": "SmallData"
+    },
+    {
+        "Id": "Load42",
+        "Name": "D3D 3D",
+        "Index": 142,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load43",
+        "Name": "D3D Video Decode",
+        "Index": 143,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load44",
+        "Name": "D3D Copy",
+        "Index": 144,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load45",
+        "Name": "D3D Video Processing",
+        "Index": 145,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load46",
+        "Name": "D3D Other",
+        "Index": 146,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load47",
+        "Name": "D3D Other",
+        "Index": 147,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load48",
+        "Name": "D3D Other",
+        "Index": 148,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load49",
+        "Name": "D3D Other",
+        "Index": 149,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load50",
+        "Name": "D3D Other",
+        "Index": 150,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load51",
+        "Name": "D3D Other",
+        "Index": 151,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load52",
+        "Name": "D3D Overlay",
+        "Index": 152,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load53",
+        "Name": "D3D Other",
+        "Index": 153,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load54",
+        "Name": "D3D Other",
+        "Index": 154,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo155",
+        "Name": "YMTC YMSS2ED06D25MC",
+        "Index": 155,
+        "Type": "Info",
+        "Info": "Storage"
+    },
+    {
+        "Id": "Temperature38",
+        "Name": "Temperature",
+        "Index": 156,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Level0",
+        "Name": "Available Spare",
+        "Index": 157,
+        "Type": "Sensor",
+        "Info": "Level"
+    },
+    {
+        "Id": "Level1",
+        "Name": "Available Spare Threshold",
+        "Index": 158,
+        "Type": "Sensor",
+        "Info": "Level"
+    },
+    {
+        "Id": "Level2",
+        "Name": "Percentage Used",
+        "Index": 159,
+        "Type": "Sensor",
+        "Info": "Level"
+    },
+    {
+        "Id": "Data4",
+        "Name": "Data Read",
+        "Index": 160,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data5",
+        "Name": "Data Written",
+        "Index": 161,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Temperature39",
+        "Name": "Temperature 1",
+        "Index": 162,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Temperature40",
+        "Name": "Temperature 2",
+        "Index": 163,
+        "Type": "Sensor",
+        "Info": "Temperature"
+    },
+    {
+        "Id": "Load55",
+        "Name": "Used Space",
+        "Index": 164,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load56",
+        "Name": "Read Activity",
+        "Index": 165,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load57",
+        "Name": "Write Activity",
+        "Index": 166,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Load58",
+        "Name": "Total Activity",
+        "Index": 167,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "Throughput2",
+        "Name": "Read Rate",
+        "Index": 168,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput3",
+        "Name": "Write Rate",
+        "Index": 169,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "HardwareInfo170",
+        "Name": "\u672C\u5730\u8FDE\u63A5* 1",
+        "Index": 170,
+        "Type": "Info",
+        "Info": "Network"
+    },
+    {
+        "Id": "Data6",
+        "Name": "Data Uploaded",
+        "Index": 171,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data7",
+        "Name": "Data Downloaded",
+        "Index": 172,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Throughput4",
+        "Name": "Upload Speed",
+        "Index": 173,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput5",
+        "Name": "Download Speed",
+        "Index": 174,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Load59",
+        "Name": "Network Utilization",
+        "Index": 175,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo176",
+        "Name": "\u672C\u5730\u8FDE\u63A5* 2",
+        "Index": 176,
+        "Type": "Info",
+        "Info": "Network"
+    },
+    {
+        "Id": "Data8",
+        "Name": "Data Uploaded",
+        "Index": 177,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data9",
+        "Name": "Data Downloaded",
+        "Index": 178,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Throughput6",
+        "Name": "Upload Speed",
+        "Index": 179,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput7",
+        "Name": "Download Speed",
+        "Index": 180,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Load60",
+        "Name": "Network Utilization",
+        "Index": 181,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo182",
+        "Name": "\u84DD\u7259\u7F51\u7EDC\u8FDE\u63A5",
+        "Index": 182,
+        "Type": "Info",
+        "Info": "Network"
+    },
+    {
+        "Id": "Data10",
+        "Name": "Data Uploaded",
+        "Index": 183,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data11",
+        "Name": "Data Downloaded",
+        "Index": 184,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Throughput8",
+        "Name": "Upload Speed",
+        "Index": 185,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput9",
+        "Name": "Download Speed",
+        "Index": 186,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Load61",
+        "Name": "Network Utilization",
+        "Index": 187,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo188",
+        "Name": "\u4EE5\u592A\u7F51",
+        "Index": 188,
+        "Type": "Info",
+        "Info": "Network"
+    },
+    {
+        "Id": "Data12",
+        "Name": "Data Uploaded",
+        "Index": 189,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data13",
+        "Name": "Data Downloaded",
+        "Index": 190,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Throughput10",
+        "Name": "Upload Speed",
+        "Index": 191,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput11",
+        "Name": "Download Speed",
+        "Index": 192,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Load62",
+        "Name": "Network Utilization",
+        "Index": 193,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo194",
+        "Name": "WLAN",
+        "Index": 194,
+        "Type": "Info",
+        "Info": "Network"
+    },
+    {
+        "Id": "Data14",
+        "Name": "Data Uploaded",
+        "Index": 195,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Data15",
+        "Name": "Data Downloaded",
+        "Index": 196,
+        "Type": "Sensor",
+        "Info": "Data"
+    },
+    {
+        "Id": "Throughput12",
+        "Name": "Upload Speed",
+        "Index": 197,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Throughput13",
+        "Name": "Download Speed",
+        "Index": 198,
+        "Type": "Sensor",
+        "Info": "Throughput"
+    },
+    {
+        "Id": "Load63",
+        "Name": "Network Utilization",
+        "Index": 199,
+        "Type": "Sensor",
+        "Info": "Load"
+    },
+    {
+        "Id": "HardwareInfo200",
+        "Name": "L23D4PK4\u0000",
+        "Index": 200,
+        "Type": "Info",
+        "Info": "Battery"
+    },
+    {
+        "Id": "Energy0",
+        "Name": "Designed Capacity",
+        "Index": 201,
+        "Type": "Sensor",
+        "Info": "Energy"
+    },
+    {
+        "Id": "Energy1",
+        "Name": "Fully-Charged Capacity",
+        "Index": 202,
+        "Type": "Sensor",
+        "Info": "Energy"
+    },
+    {
+        "Id": "Level3",
+        "Name": "Degradation Level",
+        "Index": 203,
+        "Type": "Sensor",
+        "Info": "Level"
+    },
+    {
+        "Id": "Energy2",
+        "Name": "Remaining Capacity",
+        "Index": 204,
+        "Type": "Sensor",
+        "Info": "Energy"
+    },
+    {
+        "Id": "Level4",
+        "Name": "Charge Level",
+        "Index": 205,
+        "Type": "Sensor",
+        "Info": "Level"
+    },
+    {
+        "Id": "Voltage17",
+        "Name": "Voltage",
+        "Index": 206,
+        "Type": "Sensor",
+        "Info": "Voltage"
+    },
+    {
+        "Id": "Current0",
+        "Name": "Discharge Current",
+        "Index": 207,
+        "Type": "Sensor",
+        "Info": "Current"
+    },
+    {
+        "Id": "Power6",
+        "Name": "Discharge Rate",
+        "Index": 208,
+        "Type": "Sensor",
+        "Info": "Power"
+    },
+    {
+        "Id": "TimeSpan0",
+        "Name": "Remaining Time (Estimated)",
+        "Index": 209,
+        "Type": "Sensor",
+        "Info": "TimeSpan"
+    }
+]
