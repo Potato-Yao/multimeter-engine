@@ -1,11 +1,1 @@
-{
-  "version": 1,
-  "id": "from_desktop_1",
-  "kind": "get_info",
-  "payload": {
-    "name": "cpu_name",
-    "addition": {
-      "lower_letter": false
-    }
-  }
-}
+{"version": 1,"id": "from_desktop_1","kind": "get_info","payload": {"value": "cpu_name","addition": null}}
