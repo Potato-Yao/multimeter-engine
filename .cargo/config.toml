@@ -1,0 +1,4 @@
+[env]
+LMSENSORS_INCLUDE_DIR = { value = "build/libsensors/include", relative = true }
+LMSENSORS_LIB_DIR = { value = "build/libsensors/lib", relative = true }
+LMSENSORS_STATIC = "1"
