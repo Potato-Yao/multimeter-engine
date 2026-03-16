@@ -12,7 +12,6 @@ use std::env;
 use std::fs::read_to_string;
 use std::sync::{Arc, Mutex};
 
-#[cfg(windows)]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 struct Sensor {
@@ -24,7 +23,6 @@ struct Sensor {
     info: String,
 }
 
-#[cfg(windows)]
 pub struct Windows {
     index_map: HashMap<String, i32>,
     lhm_helper: LhmHelper,
@@ -36,6 +34,7 @@ struct WindowsPayload {
     prev_bat_capacity: f64,
 }
 
+#[cfg(windows)]
 impl Updater for Windows {
     fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         self.set_activation_state(map);

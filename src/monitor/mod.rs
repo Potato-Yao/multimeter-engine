@@ -1,5 +1,4 @@
 use crate::get_running_flag;
-use crate::monitor::windows::Windows;
 use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
@@ -10,8 +9,14 @@ use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
+#[cfg(windows)]
+use crate::monitor::windows::Windows;
+#[cfg(target_os = "linux")]
+use crate::monitor::linux::Linux;
+
 mod hardware_model;
 mod windows;
+mod linux;
 
 pub type InfoMap = HashMap<String, DataContainer>;
 
@@ -85,6 +90,8 @@ pub fn init() -> Result<()> {
     debug!("Initializing Query Manager");
     #[cfg(windows)]
     let manager = Windows::build()?;
+    #[cfg(target_os = "linux")]
+    let manager = Linux::build()?;
 
     let _ = QUERY_MANAGER.set(manager.clone());
 
