@@ -1,0 +1,137 @@
+chip: coretemp-isa-0000 at ISA adapter (/sys/class/hwmon/hwmon8)
+    temp1: Package id 0
+        temp1_input: 54 C
+        temp1_max: 110 C
+        temp1_crit: 110 C
+        temp1_crit_alarm:
+    temp2: Core 0
+        temp2_input: 49 C
+        temp2_max: 110 C
+        temp2_crit: 110 C
+        temp2_crit_alarm:
+    temp3: Core 1
+        temp3_input: 49 C
+        temp3_max: 110 C
+        temp3_crit: 110 C
+        temp3_crit_alarm:
+    temp4: Core 2
+        temp4_input: 49 C
+        temp4_max: 110 C
+        temp4_crit: 110 C
+        temp4_crit_alarm:
+    temp5: Core 3
+        temp5_input: 50 C
+        temp5_max: 110 C
+        temp5_crit: 110 C
+        temp5_crit_alarm:
+    temp6: Core 4
+        temp6_input: 49 C
+        temp6_max: 110 C
+        temp6_crit: 110 C
+        temp6_crit_alarm:
+    temp7: Core 5
+        temp7_input: 49 C
+        temp7_max: 110 C
+        temp7_crit: 110 C
+        temp7_crit_alarm:
+    temp8: Core 6
+        temp8_input: 49 C
+        temp8_max: 110 C
+        temp8_crit: 110 C
+        temp8_crit_alarm:
+    temp9: Core 7
+        temp9_input: 49 C
+        temp9_max: 110 C
+        temp9_crit: 110 C
+        temp9_crit_alarm:
+    temp10: Core 8
+        temp10_input: 49 C
+        temp10_max: 110 C
+        temp10_crit: 110 C
+        temp10_crit_alarm:
+    temp14: Core 12
+        temp14_input: 49 C
+        temp14_max: 110 C
+        temp14_crit: 110 C
+        temp14_crit_alarm:
+    temp18: Core 16
+        temp18_input: 48 C
+        temp18_max: 110 C
+        temp18_crit: 110 C
+        temp18_crit_alarm:
+    temp22: Core 20
+        temp22_input: 48 C
+        temp22_max: 110 C
+        temp22_crit: 110 C
+        temp22_crit_alarm:
+    temp26: Core 24
+        temp26_input: 54 C
+        temp26_max: 110 C
+        temp26_crit: 110 C
+        temp26_crit_alarm:
+    temp30: Core 28
+        temp30_input: 47 C
+        temp30_max: 110 C
+        temp30_crit: 110 C
+        temp30_crit_alarm:
+    temp34: Core 32
+        temp34_input: 53 C
+        temp34_max: 110 C
+        temp34_crit: 110 C
+        temp34_crit_alarm:
+    temp35: Core 33
+        temp35_input: 53 C
+        temp35_max: 110 C
+        temp35_crit: 110 C
+        temp35_crit_alarm:
+chip: asus-isa-0000 at ISA adapter (/sys/class/hwmon/hwmon6)
+    fan1: cpu_fan
+        fan1_input: 2400 RPM
+    fan2: gpu_fan
+        fan2_input: 2200 RPM
+    fan3: mid_fan
+        fan3_input: 4700 RPM
+chip: nvme-pci-0300 at PCI adapter (/sys/class/hwmon/hwmon4)
+    temp1: Composite
+        temp1_input: 36.85 C
+        temp1_max: 85.85 C
+        temp1_min: -0.15 C
+        temp1_crit: 86.85 C
+        temp1_alarm:
+    temp2: Sensor 1
+        temp2_input: 30.85 C
+        temp2_max: 65261.85 C
+        temp2_min: -273.15 C
+    temp3: Sensor 2
+        temp3_input: 33.85 C
+        temp3_max: 65261.85 C
+        temp3_min: -273.15 C
+chip: acpitz-acpi-0 at ACPI interface (/sys/class/hwmon/hwmon2)
+    temp1: temp1
+        temp1_input: 52 C
+chip: iwlwifi_1-virtual-0 at Virtual device (/sys/class/hwmon/hwmon9)
+    temp1: temp1
+        temp1_input: 41 C
+chip: nvme-pci-0200 at PCI adapter (/sys/class/hwmon/hwmon5)
+    temp1: Composite
+        temp1_input: 28.85 C
+        temp1_max: 83.85 C
+        temp1_min: -40.15 C
+        temp1_crit: 87.85 C
+        temp1_alarm:
+    temp2: Sensor 1
+        temp2_input: 44.85 C
+        temp2_max: 65261.85 C
+        temp2_min: -273.15 C
+    temp3: Sensor 2
+        temp3_input: 28.85 C
+        temp3_max: 65261.85 C
+        temp3_min: -273.15 C
+chip: BAT1-acpi-0 at ACPI interface (/sys/class/hwmon/hwmon3)
+    in0: in0
+        in0_input: 17.083 V
+    curr1: curr1
+        curr1_input: 2.871 A
+chip: acpi_fan-isa-0000 at ISA adapter (/sys/class/hwmon/hwmon1)
+    fan1: fan1
+        fan1_input: 2481 RPM

@@ -24,3 +24,6 @@ lm-sensors = { git = "https://codeberg.org/koutheir/lm-sensors" }
 
 [build-dependencies]
 walkdir = "2.5.0"
+
+[features]
+fake-sensors = []

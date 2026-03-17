@@ -9,14 +9,17 @@ use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
-#[cfg(windows)]
+#[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
 use crate::monitor::linux::Linux;
+#[cfg(feature = "fake-sensors")]
+use crate::monitor::fake::Fake;
 
 mod hardware_model;
 mod windows;
 mod linux;
+mod fake;
 
 pub type InfoMap = HashMap<String, DataContainer>;
 
@@ -88,10 +91,12 @@ pub fn init() -> Result<()> {
     }
 
     debug!("Initializing Query Manager");
-    #[cfg(windows)]
+    #[cfg(all(windows, not(feature = "fake-sensors")))]
     let manager = Windows::build()?;
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
     let manager = Linux::build()?;
+    #[cfg(feature = "fake-sensors")]
+    let manager = Fake::build()?;
 
     let _ = QUERY_MANAGER.set(manager.clone());
 
