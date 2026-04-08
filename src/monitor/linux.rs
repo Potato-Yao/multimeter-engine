@@ -1,11 +1,13 @@
 use crate::monitor::Updater;
 use crate::util::data_container::DataContainer;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use lm_sensors::LMSensors;
+use nvml_wrapper::Nvml;
+use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-struct SensorWrapper(LMSensors);
+struct SensorWrapper(LMSensors, Option<Nvml>);
 
 unsafe impl Send for SensorWrapper {}
 unsafe impl Sync for SensorWrapper {}
@@ -31,6 +33,51 @@ impl Updater for Linux {
     }
 
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        self.set_libsensor_info(map)?;
+        self.set_nvml_info(map)?;
+
+        Ok(())
+    }
+
+    fn shutdown(&mut self) -> Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "linux")]
+impl Linux {
+    pub fn build() -> Result<Arc<Mutex<Self>>> {
+        let lm_sensor = lm_sensors::Initializer::default().initialize()?;
+        let nvml = match Nvml::init() {
+            Ok(n) => Some(n),
+            _ => None,
+        };
+
+        Ok(Arc::new(Mutex::new(Self {
+            sensor: SensorWrapper(lm_sensor, nvml),
+        })))
+    }
+
+    fn set_nvml_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        if let Some(sensor) = &self.sensor.1 {
+            let device = sensor.device_by_index(0)?;
+            map.insert("gpu_name", Some(DataContainer::Text(device.name()?)));
+            map.insert(
+                "gpu_power",
+                Some(DataContainer::Float(device.power_usage()? as f64 / 1000.0)),
+            );
+            map.insert(
+                "gpu_temperature",
+                Some(DataContainer::Int(
+                    device.temperature(TemperatureSensor::Gpu)? as i32,
+                )),
+            );
+        }
+
+        Ok(())
+    }
+
+    fn set_libsensor_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         let sensors = &self.sensor.0;
         let mut state: Option<State>;
 
@@ -86,23 +133,7 @@ impl Updater for Linux {
                 None => {}
             }
         }
-
         Ok(())
-    }
-
-    fn shutdown(&mut self) -> Result<()> {
-        Ok(())
-    }
-}
-
-#[cfg(target_os = "linux")]
-impl Linux {
-    pub fn build() -> Result<Arc<Mutex<Self>>> {
-        let lm_sensor = lm_sensors::Initializer::default().initialize()?;
-
-        Ok(Arc::new(Mutex::new(Self {
-            sensor: SensorWrapper(lm_sensor),
-        })))
     }
 }
 

@@ -212,7 +212,9 @@ mod tests {
         let request = QueryRequest {
             // target: "cpu_power".to_string(),
             // target: "cpu_temperature".to_string(),
-            target: "bat_rate".to_string(),
+            // target: "bat_rate".to_string(),
+            // target: "gpu_name".to_string(),
+            target: "gpu_temperature".to_string(),
             parameter: None,
         };
         let result = query_info(request);
