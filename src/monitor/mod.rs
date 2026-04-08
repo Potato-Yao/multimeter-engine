@@ -210,11 +210,13 @@ mod tests {
     #[test]
     fn test_query() {
         let request = QueryRequest {
-            target: "cpu_power".to_string(),
+            // target: "cpu_power".to_string(),
+            // target: "cpu_temperature".to_string(),
+            target: "bat_rate".to_string(),
             parameter: None,
         };
         let result = query_info(request);
-        assert!(result.is_ok());
         println!("INFO MAP: {:?}", INFO_MAP.lock().unwrap());
+        assert!(result.is_ok());
     }
 }
