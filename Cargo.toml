@@ -24,6 +24,7 @@ regex = "1.12.2"
 #lm-sensors = { git = "https://github.com/wiiznokes/lm-sensors.git", branch = "pwm" }
 lm-sensors = { git = "https://codeberg.org/koutheir/lm-sensors" }
 nvml-wrapper = "=0.12.1"
+starship-battery = "0.11.0"
 #lm-sensors = "0.5.0"
 
 [build-dependencies]

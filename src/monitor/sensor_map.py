@@ -47,6 +47,7 @@ sensors = [
     ("bat_rate", "Discharge Rate", "equals", "Power", "double"),
     ("bat_rate", "Charge/Discharge Rate", "equals", "Power", "double"),
     ("bat_state", missing_item, missing_item, missing_item, "boolean"),
+    ("bat_count", missing_item, missing_item, missing_item, "int"),
     ("os_activated", missing_item, missing_item, missing_item, "boolean"),
     ("disk_temperature_first", "Temperature 1", "equals", "Temperature", "double"),
     ("disk_temperature_last", r"^Temperature \d{1,2}$", "match", "Temperature", "double"),

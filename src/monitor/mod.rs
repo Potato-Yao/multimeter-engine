@@ -9,17 +9,19 @@ use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 
-#[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
-use crate::monitor::windows::Windows;
-#[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
-use crate::monitor::linux::Linux;
 #[cfg(feature = "fake-sensors")]
 use crate::monitor::fake::Fake;
+use crate::monitor::general::General;
+#[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
+use crate::monitor::linux::Linux;
+#[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
+use crate::monitor::windows::Windows;
 
-mod hardware_model;
-mod windows;
-mod linux;
 mod fake;
+mod general;
+mod hardware_model;
+mod linux;
+mod windows;
 
 pub type InfoMap = HashMap<String, DataContainer>;
 
@@ -55,7 +57,10 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         init()?;
     }
 
-    trace!("Info map: {:?}", INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?);
+    trace!(
+        "Info map: {:?}",
+        INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?
+    );
 
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
         // add special handling here
@@ -98,10 +103,14 @@ pub fn init() -> Result<()> {
     #[cfg(feature = "fake-sensors")]
     let manager = Fake::build()?;
 
+    let general_manager = General::build()?;
+
     let _ = QUERY_MANAGER.set(manager.clone());
+    let _ = QUERY_MANAGER.set(general_manager.clone());
 
     {
         let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
+        let mut general_mgr = general_manager.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
         if let Err(e) = mgr.update_once(&mut map) {
             error!("Update failed: {}", e);
@@ -112,16 +121,31 @@ pub fn init() -> Result<()> {
         if let Err(e) = mgr.update(&mut map) {
             error!("Update failed: {}", e);
         }
+
+        if let Err(e) = general_mgr.update_once(&mut map) {
+            error!("Update failed: {}", e);
+        }
+        if let Err(e) = general_mgr.update_slow(&mut map) {
+            error!("Update failed: {}", e);
+        }
+        if let Err(e) = general_mgr.update(&mut map) {
+            error!("Update failed: {}", e);
+        }
     }
 
     let manager_normal = manager.clone();
+    let general_manager_normal = general_manager.clone();
     thread::spawn(move || {
         while get_running_flag() {
             {
                 let mut mgr = manager_normal.lock().unwrap();
+                let mut general_mgr = general_manager_normal.lock().unwrap();
                 let mut map = INFO_MAP.lock().unwrap();
                 if let Err(e) = mgr.update(&mut map) {
                     error!("Update failed: {}", e);
+                }
+                if let Err(e) = general_mgr.update(&mut map) {
+                    error!("General update failed: {}", e);
                 }
             }
             thread::sleep(Duration::from_millis(500));
@@ -129,12 +153,17 @@ pub fn init() -> Result<()> {
     });
 
     let manager_slow = manager.clone();
+    let general_manager_slow = general_manager.clone();
     thread::spawn(move || {
         while get_running_flag() {
             {
                 let mut mgr = manager_slow.lock().unwrap();
+                let mut general_mgr = general_manager_slow.lock().unwrap();
                 let mut map = INFO_MAP.lock().unwrap();
                 if let Err(e) = mgr.update_slow(&mut map) {
+                    error!("Update failed: {}", e);
+                }
+                if let Err(e) = general_mgr.update_slow(&mut map) {
                     error!("Update failed: {}", e);
                 }
             }
@@ -146,12 +175,9 @@ pub fn init() -> Result<()> {
 }
 
 pub fn shutdown() -> Result<()> {
-    #[cfg(windows)]
-    {
-        if let Some(manager) = QUERY_MANAGER.get() {
-            let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
-            return mgr.shutdown();
-        }
+    if let Some(manager) = QUERY_MANAGER.get() {
+        let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
+        return mgr.shutdown();
     }
 
     Ok(())
@@ -163,6 +189,7 @@ lazy_static! {
         "bat_capacity_designed",
         "bat_capacity_max",
         "bat_capacity_remain",
+        "bat_count",
         "bat_rate",
         "bat_state",
         "bat_voltage",
@@ -214,7 +241,8 @@ mod tests {
             // target: "cpu_temperature".to_string(),
             // target: "bat_rate".to_string(),
             // target: "gpu_name".to_string(),
-            target: "gpu_temperature".to_string(),
+            // target: "gpu_temperature".to_string(),
+            target: "bat_capacity_max".to_string(),
             parameter: None,
         };
         let result = query_info(request);
