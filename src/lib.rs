@@ -6,12 +6,9 @@ pub mod web;
 
 use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
-use futures::{SinkExt, StreamExt};
 use log::debug;
 use std::ffi::{CStr, CString, c_char};
 use std::sync::Mutex;
-use tokio::net::TcpStream;
-use tokio_util::codec::{Framed, LinesCodec};
 
 static KEEP_RUNNING: Mutex<bool> = Mutex::new(true);
 
@@ -25,24 +22,15 @@ pub fn process_command(input: String) -> String {
     }
 }
 
-pub fn handle_request(socket: TcpStream) {
-    tokio::spawn(async move {
-        let mut framed = Framed::new(socket, LinesCodec::new());
+pub fn engine_init() -> Result<()> {
+    monitor::init()?;
 
-        while let Some(Ok(line)) = framed.next().await {
-            match web::handle_request(line) {
-                Ok(response) | Err(response) => {
-                    let response_str = serde_json::to_string(&response).unwrap();
-                    let _ = framed.send(response_str).await;
-                }
-            }
-        }
-    });
+    Ok(())
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn multimeter_init() -> i32 {
-    match monitor::init() {
+    match engine_init() {
         Ok(_) => 0,
         Err(_) => -1,
     }
