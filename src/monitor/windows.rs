@@ -1,5 +1,6 @@
 use crate::external_program::lhm_helper::LhmHelper;
 use crate::external_program::program::{ExternalProgram, ProgramKind};
+use crate::insert_data;
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
 use crate::util::data_container::DataContainer;
@@ -227,9 +228,9 @@ impl Windows {
             let prev_capacity = self.payload.prev_bat_capacity;
 
             if prev_capacity < capacity || rate == 0.0 {
-                map.insert("bat_state", Some(DataContainer::Boolean(true)));
+                insert_data!(map, "bat_state", true);
             } else if prev_capacity > capacity {
-                map.insert("bat_state", Some(DataContainer::Boolean(false)));
+                insert_data!(map, "bat_state", false);
             };
 
             self.payload.prev_bat_capacity = capacity;
@@ -309,9 +310,9 @@ impl Windows {
         match slmgr.start(0) {
             Ok(output) => {
                 if output.contains("permanently activated") || output.contains("计算机已永久激活") {
-                    map.insert("os_activated", Some(DataContainer::Boolean(true)));
+                    insert_data!(map, "os_activated", true);
                 } else {
-                    map.insert("os_activated", Some(DataContainer::Boolean(false)));
+                    insert_data!(map, "os_activated", false);
                 }
             }
             Err(e) => {

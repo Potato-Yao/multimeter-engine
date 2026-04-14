@@ -4,6 +4,7 @@ use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use crate::insert_data;
 
 struct BatteryWrapper(Manager, Battery);
 
@@ -27,41 +28,23 @@ impl Updater for General {
         self.battery.0.refresh(&mut self.battery.1)?;
 
         let bat = &mut self.battery.1;
-        map.insert(
-            "bat_capacity_remain",
-            Some(DataContainer::Float(joules_to_watt_hours(
-                bat.energy().value as f64,
-            ))),
-        );
-        map.insert(
-            "bat_capacity_designed",
-            Some(DataContainer::Float(joules_to_watt_hours(
-                bat.energy_full_design().value as f64,
-            ))),
-        );
-        map.insert(
-            "bat_capacity_max",
-            Some(DataContainer::Float(joules_to_watt_hours(
-                bat.energy_full().value as f64,
-            ))),
-        );
-        map.insert(
-            "bat_rate",
-            Some(DataContainer::Float(bat.energy_rate().value as f64)),
-        );
-        map.insert(
-            "bat_voltage",
-            Some(DataContainer::Float(bat.voltage().value as f64)),
-        );
-        map.insert(
-            "bat_state",
-            Some(DataContainer::Boolean(match bat.state() {
-                State::Charging | State::Full => true,
-                State::Discharging | State::Unknown | State::Empty => false,
-            })),
-        );
+        // map.insert(
+        //     "bat_capacity_remain",
+        //     Some(DataContainer::Float(joules_to_watt_hours(
+        //         bat.energy().value as f64,
+        //     ))),
+        // );
+        insert_data!(map, "bat_capacity_remain", joules_to_watt_hours(bat.energy().value as f64));
+        insert_data!(map, "bat_capacity_designed", joules_to_watt_hours(bat.energy_full_design().value as f64));
+        insert_data!(map, "bat_capacity_max", joules_to_watt_hours(bat.energy_full().value as f64));
+        insert_data!(map, "bat_rate", bat.energy_rate().value as f64);
+        insert_data!(map, "bat_voltage", bat.voltage().value as f64);
+        insert_data!(map, "bat_state", match bat.state() {
+            State::Charging | State::Full => true,
+            State::Discharging | State::Unknown | State::Empty => false,
+        });
         if let Some(count) = bat.cycle_count() {
-            map.insert("bat_count", Some(DataContainer::Int(count as i32)));
+            insert_data!(map, "bat_count", count as i32);
         }
 
         Ok(())

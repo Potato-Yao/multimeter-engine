@@ -1,3 +1,4 @@
+use crate::insert_data;
 use crate::monitor::Updater;
 use crate::util::data_container::DataContainer;
 use anyhow::Result;
@@ -61,17 +62,9 @@ impl Linux {
     fn set_nvml_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         if let Some(sensor) = &self.sensor.1 {
             let device = sensor.device_by_index(0)?;
-            map.insert("gpu_name", Some(DataContainer::Text(device.name()?)));
-            map.insert(
-                "gpu_power",
-                Some(DataContainer::Float(device.power_usage()? as f64 / 1000.0)),
-            );
-            map.insert(
-                "gpu_temperature",
-                Some(DataContainer::Int(
-                    device.temperature(TemperatureSensor::Gpu)? as i32,
-                )),
-            );
+            insert_data!(map, "gpu_name", device.name()?);
+            insert_data!(map, "gpu_power", device.power_usage()? as f64 / 1000.0);
+            insert_data!(map, "gpu_temperature", device.temperature(TemperatureSensor::Gpu)? as i32);
         }
 
         Ok(())
@@ -97,10 +90,7 @@ impl Linux {
                             for sub in feature.sub_feature_iter() {
                                 if sub.to_string().contains("input") {
                                     let value = sub.value()?.to_string();
-                                    map.insert(
-                                        "cpu_temperature",
-                                        Some(DataContainer::Int(remove_unit(&value).parse()?)),
-                                    );
+                                    insert_data!(map, "cpu_temperature", remove_unit(&value).parse::<i32>()?);
                                     break 'outer;
                                 }
                             }
@@ -123,10 +113,10 @@ impl Linux {
                         }
                     }
                     if voltage != -1.0 {
-                        map.insert("bat_voltage", Some(DataContainer::Float(voltage)));
+                        insert_data!(map, "bat_voltage", voltage);
 
                         if current != -1.0 {
-                            map.insert("bat_rate", Some(DataContainer::Float(current * voltage)));
+                            insert_data!(map, "bat_rate", current * voltage);
                         }
                     }
                 }
