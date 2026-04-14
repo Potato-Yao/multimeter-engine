@@ -57,6 +57,9 @@ sensors = [
     ("os_kernel_version", missing_item, missing_item, missing_item, "string"),
     ("os_version", missing_item, missing_item, missing_item, "string"),
     ("os_host_name", missing_item, missing_item, missing_item, "string"),
+    ("fan_rpm_cpu", missing_item, missing_item, missing_item, "int"),
+    ("fan_rpm_gpu", missing_item, missing_item, missing_item, "int"),
+    ("fan_rpm_mid", missing_item, missing_item, missing_item, "int"),
 ]
 
 
