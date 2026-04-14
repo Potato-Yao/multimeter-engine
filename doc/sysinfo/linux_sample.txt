@@ -1,0 +1,53 @@
+=> system:
+total memory: 33012895744 bytes
+used memory : 19706966016 bytes
+total swap  : 53687083008 bytes
+used swap   : 22013820928 bytes
+System name:             Some("Fedora Linux")
+System kernel version:   Some("6.19.10-100.fc42.x86_64")
+System OS version:       Some("42")
+System host name:        Some("potatozephyrus")
+NB CPUs: 22
+[668335] "HTML5 Parser" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 0, read_bytes: 0 }
+[668700] "kwrite:disk$0" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 0, read_bytes: 0 }
+[304173] "tokio-runtime-w" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 73728, read_bytes: 0 }
+[492889] "StyleThread#5" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 20480, read_bytes: 0 }
+[248572] "HangWatcher" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 532480, read_bytes: 0 }
+[370941] "Trigram.Index W" DiskUsage { total_written_bytes: 11235328, written_bytes: 0, total_read_bytes: 532480, read_bytes: 0 }
+=> disks:
+Disk("/dev/nvme0n1p1")[FS: "ext4"][Type: SSD][removable: no][I/O: DiskUsage { total_written_bytes: 348685512704, written_bytes: 348685512704, total_read_bytes: 427998438400, read_bytes: 427998438400 }] mounted on "/": 360022036480/901311176704 B
+Disk("/dev/nvme1n1p1")[FS: "vfat"][Type: SSD][removable: no][I/O: DiskUsage { total_written_bytes: 1024, written_bytes: 1024, total_read_bytes: 11265536, read_bytes: 11265536 }] mounted on "/boot/efi": 263925760/313942016 B
+=> networks:
+vnet0: 115628493 B (down) / 966389796 B (up)
+wlo1: 4382489254 B (down) / 350144432 B (up)
+Meta: 4459875604 B (down) / 246593266 B (up)
+virbr0: 69689169 B (down) / 1803431188 B (up)
+lo: 1602031052 B (down) / 1602031052 B (up)
+vmnet1: 0 B (down) / 0 B (up)
+vmnet8: 0 B (down) / 0 B (up)
+=> components:
+coretemp Core 24 temperature: 66°C (max: 66°C / critical: 110°C)
+coretemp Core 6 temperature: 64°C (max: 64°C / critical: 110°C)
+coretemp Core 8 temperature: 70°C (max: 70°C / critical: 110°C)
+coretemp Package id 0 temperature: 69°C (max: 69°C / critical: 110°C)
+coretemp Core 3 temperature: 66°C (max: 66°C / critical: 110°C)
+coretemp Core 16 temperature: 65°C (max: 65°C / critical: 110°C)
+coretemp Core 12 temperature: 65°C (max: 65°C / critical: 110°C)
+coretemp Core 5 temperature: 64°C (max: 64°C / critical: 110°C)
+coretemp Core 28 temperature: 63°C (max: 63°C / critical: 110°C)
+coretemp Core 7 temperature: 64°C (max: 64°C / critical: 110°C)
+coretemp Core 2 temperature: 65°C (max: 65°C / critical: 110°C)
+coretemp Core 1 temperature: 67°C (max: 67°C / critical: 110°C)
+coretemp Core 33 temperature: 67°C (max: 67°C / critical: 110°C)
+coretemp Core 20 temperature: 65°C (max: 65°C / critical: 110°C)
+coretemp Core 32 temperature: 67°C (max: 67°C / critical: 110°C)
+coretemp Core 0 temperature: 66°C (max: 66°C / critical: 110°C)
+coretemp Core 4 temperature: 64°C (max: 64°C / critical: 110°C)
+nvme Sensor 2 HFS001TEJ9X101N temperature: 38.85°C (max: 38.85°C / critical: unknown)
+nvme Sensor 1 HFS001TEJ9X101N temperature: 35.85°C (max: 35.85°C / critical: unknown)
+nvme Composite HFS001TEJ9X101N temperature: 41.85°C (max: 41.85°C / critical: 86.85°C)
+acpitz temp1 temperature: 70°C (max: 70°C / critical: unknown)
+iwlwifi_1 temp1 temperature: 51°C (max: 51°C / critical: unknown)
+nvme Composite WD_BLACK SN770 2TB temperature: 45.85°C (max: 45.85°C / critical: 87.85°C)
+nvme Sensor 1 WD_BLACK SN770 2TB temperature: 66.85°C (max: 66.85°C / critical: unknown)
+nvme Sensor 2 WD_BLACK SN770 2TB temperature: 37.85°C (max: 37.85°C / critical: unknown)

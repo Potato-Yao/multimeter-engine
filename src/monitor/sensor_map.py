@@ -53,7 +53,10 @@ sensors = [
     ("disk_temperature_last", r"^Temperature \d{1,2}$", "match", "Temperature", "double"),
     ("disk_partition", missing_item, missing_item, missing_item, "string array"),
     ("disk_disk_size", missing_item, missing_item, missing_item, "string array"),
-    ("disk_partition_detail", missing_item, missing_item, missing_item, "string array"),
+    ("os_name", missing_item, missing_item, missing_item, "string"),
+    ("os_kernel_version", missing_item, missing_item, missing_item, "string"),
+    ("os_version", missing_item, missing_item, missing_item, "string"),
+    ("os_host_name", missing_item, missing_item, missing_item, "string"),
 ]
 
 

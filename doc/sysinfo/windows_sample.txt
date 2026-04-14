@@ -1,0 +1,28 @@
+=> system:
+total memory: 34070192128 bytes
+used memory : 7718334464 bytes
+total swap  : 12884901888 bytes
+used swap   : 0 bytes
+System name:             Some("Windows")
+System kernel version:   Some("22631")
+System OS version:       Some("11 (22631)")
+System host name:        Some("LAPTOP-R4SOJDAM")
+NB CPUs: 32
+[15668] "RuntimeBroker.exe" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 26888, read_bytes: 0 }
+[17236] "svchost.exe" DiskUsage { total_written_bytes: 106872, written_bytes: 0, total_read_bytes: 2786918, read_bytes: 0 }
+[12732] "AggregatorHost.exe" DiskUsage { total_written_bytes: 1565, written_bytes: 0, total_read_bytes: 68522, read_bytes: 0 }
+[7400] "svchost.exe" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 0, read_bytes: 0 }
+[2040] "fontdrvhost.exe" DiskUsage { total_written_bytes: 0, written_bytes: 0, total_read_bytes: 66082, read_bytes: 0 }
+[11732] "FnHotkeyUtility.exe" DiskUsage { total_written_bytes: 299008, written_bytes: 0, total_read_bytes: 26577, read_bytes: 0 }
+=> disks:
+Disk("Windows-SSD")[FS: "NTFS"][Type: SSD][removable: no][I/O: DiskUsage { total_written_bytes: 374761984, written_bytes: 374761984, total_read_bytes: 4774961152, read_bytes: 4774961152 }] mounted on "C:\\": 45556547584/322122543104 B
+Disk("Apps")[FS: "NTFS"][Type: SSD][removable: no][I/O: DiskUsage { total_written_bytes: 234561536, written_bytes: 234561536, total_read_bytes: 3698488832, read_bytes: 3698488832 }] mounted on "D:\\": 134495465472/484948570112 B
+Disk("Data")[FS: "NTFS"][Type: SSD][removable: no][I/O: DiskUsage { total_written_bytes: 366313472, written_bytes: 366313472, total_read_bytes: 200761344, read_bytes: 200761344 }] mounted on "E:\\": 33371353088/214747312128 B
+=> networks:
+VMware Network Adapter VMnet1: 5 B (down) / 626 B (up)
+vEthernet (Default Switch): 0 B (down) / 33180 B (up)
+Wi-Fi-Huorong NDIS Filter Driver-0000: 20294652 B (down) / 1435527 B (up)
+VMware Network Adapter VMnet8: 4 B (down) / 659 B (up)
+Wi-Fi-Npcap Packet Driver (NPCAP)-0000: 20294652 B (down) / 1435527 B (up)
+Wi-Fi: 20294652 B (down) / 1435527 B (up)
+=> components:

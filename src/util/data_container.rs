@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub enum DataContainer {
     Int(i32),
+    UnsignedLong(u64),
     Float(f64),
     Text(String),
     Boolean(bool),
@@ -13,6 +14,12 @@ pub enum DataContainer {
 impl From<i32> for DataContainer {
     fn from(value: i32) -> Self {
         DataContainer::Int(value)
+    }
+}
+
+impl From<u64> for DataContainer {
+    fn from(value: u64) -> Self {
+        DataContainer::UnsignedLong(value)
     }
 }
 
@@ -44,6 +51,7 @@ impl From<DataContainer> for String {
     fn from(value: DataContainer) -> Self {
         match value {
             DataContainer::Int(v) => v.to_string(),
+            DataContainer::UnsignedLong(v) => v.to_string(),
             DataContainer::Float(v) => v.to_string(),
             DataContainer::Text(v) => v,
             DataContainer::Boolean(v) => v.to_string(),

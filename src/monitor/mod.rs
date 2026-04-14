@@ -223,7 +223,6 @@ lazy_static! {
         "cpu_voltage_last",
         "disk_disk_size",
         "disk_partition",
-        "disk_partition_detail",
         "disk_temperature_first",
         "disk_temperature_last",
         "gpu_clock_rms",
@@ -236,6 +235,10 @@ lazy_static! {
         "mem_percentage",
         "mem_used",
         "os_activated",
+        "os_host_name",
+        "os_kernel_version",
+        "os_name",
+        "os_version",
     ];
     // THE CODE ABOVE IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
 }
