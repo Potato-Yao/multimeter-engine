@@ -36,6 +36,7 @@ impl Updater for General {
 
         let bat = &mut self.battery.1;
         let sys = &self.system.0;
+        let cpu = &sys.cpus()[0];
         // map.insert(
         //     "bat_capacity_remain",
         //     Some(DataContainer::Float(joules_to_watt_hours(
@@ -85,6 +86,9 @@ impl Updater for General {
         insert_data!(map, "mem_used", byte_to_gb(sys.used_memory()));
         insert_data!(map, "mem_available", byte_to_gb(sys.available_memory()));
         insert_data!(map, "mem_percentage", sys.used_memory() as f64 / sys.total_memory() as f64);
+        insert_data!(map, "cpu_name", cpu.name());
+        insert_data!(map, "cpu_clock_rms", cpu.frequency());
+        insert_data!(map, "cpu_usage", sys.global_cpu_usage() as f64);
 
         Ok(())
     }

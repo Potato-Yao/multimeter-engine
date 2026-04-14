@@ -4,7 +4,7 @@ use crate::util::data_container::DataContainer;
 use anyhow::Result;
 use lm_sensors::LMSensors;
 use nvml_wrapper::Nvml;
-use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
+use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -71,6 +71,8 @@ impl Linux {
                 "gpu_temperature",
                 device.temperature(TemperatureSensor::Gpu)? as i32
             );
+            insert_data!(map, "gpu_clock_rms", device.clock_info(Clock::Graphics)? as i32);
+            insert_data!(map, "gpu_mem_clock_rms", device.clock_info(Clock::Memory)? as i32);
         }
 
         Ok(())

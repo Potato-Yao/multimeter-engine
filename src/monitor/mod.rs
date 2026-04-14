@@ -248,6 +248,7 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
     use super::*;
 
     #[test]
@@ -261,8 +262,11 @@ mod tests {
             target: "bat_capacity_max".to_string(),
             parameter: None,
         };
+        let start = Utc::now();
         let result = query_info(request);
+        let end = Utc::now();
         println!("INFO MAP: {:?}", INFO_MAP.lock().unwrap());
+        println!("Time consumed: {} ms", (end - start).num_milliseconds());
         assert!(result.is_ok());
     }
 }
