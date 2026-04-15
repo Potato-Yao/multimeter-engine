@@ -250,6 +250,7 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
     use chrono::Utc;
     use super::*;
 

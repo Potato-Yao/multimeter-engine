@@ -6,12 +6,42 @@ use lm_sensors::LMSensors;
 use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use std::collections::HashMap;
+use std::fs::read_to_string;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 struct SensorWrapper(LMSensors, Option<Nvml>);
 
 unsafe impl Send for SensorWrapper {}
 unsafe impl Sync for SensorWrapper {}
+
+struct PowerCalculator(Instant, i128);
+
+unsafe impl Send for PowerCalculator {}
+unsafe impl Sync for PowerCalculator {}
+
+impl PowerCalculator {
+    fn build() -> Result<Self> {
+        Ok(Self(Instant::now(), Self::read_energy_consume()?))
+    }
+
+    fn calculate(&mut self) -> Result<f64> {
+        let now_energy = Self::read_energy_consume()?;
+        let now = Instant::now();
+        let power = (now_energy - self.1) as f64 / now.duration_since(self.0).as_secs_f64() / 1_000_000.0; // power = work / time, converted to watt
+        self.0 = now;
+        self.1 = now_energy;
+
+        Ok(power)
+    }
+
+    /// the counter gives energy consumed by muJ. if you want to convert it to J, divide 1_000_000
+    fn read_energy_consume() -> Result<i128> {
+        let path = "/sys/class/powercap/intel-rapl:0/energy_uj";
+        let raw = read_to_string(path)?;
+        Ok(raw.trim().parse::<i128>()?)
+    }
+}
 
 enum State {
     TEMP,
@@ -21,6 +51,7 @@ enum State {
 
 pub struct Linux {
     sensor: SensorWrapper,
+    power_calculator: PowerCalculator,
 }
 
 #[cfg(target_os = "linux")]
@@ -38,6 +69,7 @@ impl Updater for Linux {
     fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         self.set_libsensor_info(map)?;
         self.set_nvml_info(map)?;
+        self.set_cpu_power(map)?;
 
         Ok(())
     }
@@ -58,6 +90,7 @@ impl Linux {
 
         Ok(Arc::new(Mutex::new(Self {
             sensor: SensorWrapper(lm_sensor, nvml),
+            power_calculator: PowerCalculator::build()?,
         })))
     }
 
@@ -71,8 +104,16 @@ impl Linux {
                 "gpu_temperature",
                 device.temperature(TemperatureSensor::Gpu)? as i32
             );
-            insert_data!(map, "gpu_clock_rms", device.clock_info(Clock::Graphics)? as i32);
-            insert_data!(map, "gpu_mem_clock_rms", device.clock_info(Clock::Memory)? as i32);
+            insert_data!(
+                map,
+                "gpu_clock_rms",
+                device.clock_info(Clock::Graphics)? as i32
+            );
+            insert_data!(
+                map,
+                "gpu_mem_clock_rms",
+                device.clock_info(Clock::Memory)? as i32
+            );
         }
 
         Ok(())
@@ -159,6 +200,13 @@ impl Linux {
                 None => {}
             }
         }
+        Ok(())
+    }
+
+    fn set_cpu_power(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        let power = self.power_calculator.calculate()?;
+        insert_data!(map, "cpu_power", power);
+
         Ok(())
     }
 }
