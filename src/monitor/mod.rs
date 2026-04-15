@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
-
+use tracing::instrument;
 use crate::monitor::general::General;
 #[cfg(feature = "fake-sensors")]
 use crate::monitor::fake::Fake;
@@ -61,6 +61,7 @@ static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLoc
     Mutex::new(m)
 });
 
+#[instrument]
 pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
     debug!("Query Request: {:?}", request);
     if QUERY_MANAGER.get().is_none() {
@@ -262,6 +263,7 @@ mod tests {
             target: "bat_capacity_max".to_string(),
             parameter: None,
         };
+        init().unwrap();
         let start = Utc::now();
         let result = query_info(request);
         let end = Utc::now();
