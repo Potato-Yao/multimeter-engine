@@ -222,6 +222,7 @@ lazy_static! {
         "cpu_voltage",
         "cpu_voltage_first",
         "cpu_voltage_last",
+        "disk_disk",
         "disk_disk_size",
         "disk_partition",
         "disk_temperature_first",

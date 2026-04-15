@@ -5,7 +5,9 @@ use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use sysinfo::System;
+use sysinfo::{Disks, System};
+
+struct SysinfoDisk {}
 
 struct BatteryWrapper(Manager, Battery);
 
@@ -27,6 +29,12 @@ impl Updater for General {
     }
 
     fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        let disks = Disks::new_with_refreshed_list()
+            .iter()
+            .map(|e| serde_json::to_string(e).unwrap())
+            .collect::<Vec<_>>();
+        insert_data!(map, "disk_disk", disks);
+
         Ok(())
     }
 
@@ -85,7 +93,11 @@ impl Updater for General {
         }
         insert_data!(map, "mem_used", byte_to_gb(sys.used_memory()));
         insert_data!(map, "mem_available", byte_to_gb(sys.available_memory()));
-        insert_data!(map, "mem_percentage", sys.used_memory() as f64 / sys.total_memory() as f64);
+        insert_data!(
+            map,
+            "mem_percentage",
+            sys.used_memory() as f64 / sys.total_memory() as f64
+        );
         insert_data!(map, "cpu_name", cpu.name());
         insert_data!(map, "cpu_clock_rms", cpu.frequency());
         insert_data!(map, "cpu_usage", sys.global_cpu_usage() as f64);

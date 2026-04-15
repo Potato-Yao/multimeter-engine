@@ -47,6 +47,18 @@ impl From<bool> for DataContainer {
     }
 }
 
+impl From<Vec<DataContainer>> for DataContainer {
+    fn from(value: Vec<DataContainer>) -> Self {
+        DataContainer::Array(value)
+    }
+}
+
+impl From<Vec<String>> for DataContainer {
+    fn from(value: Vec<String>) -> Self {
+        DataContainer::Array(value.into_iter().map(DataContainer::from).collect())
+    }
+}
+
 impl From<DataContainer> for String {
     fn from(value: DataContainer) -> Self {
         match value {
