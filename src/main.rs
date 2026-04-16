@@ -1,6 +1,6 @@
 use futures::{SinkExt, StreamExt};
 use log::{debug, info};
-use multimeter_engine::{engine_init, monitor, web};
+use multimeter_engine::{engine_init, web};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LinesCodec};
 

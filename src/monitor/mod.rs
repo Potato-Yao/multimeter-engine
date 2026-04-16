@@ -1,7 +1,14 @@
 use crate::get_running_flag;
+#[cfg(feature = "fake-sensors")]
+use crate::monitor::fake::Fake;
+use crate::monitor::general::General;
+#[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
+use crate::monitor::linux::Linux;
+#[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
+use crate::monitor::windows::Windows;
 use crate::util::data_container::DataContainer;
 use crate::util::payload::PayLoad;
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use log::{debug, error, trace};
 use std::collections::HashMap;
@@ -9,16 +16,11 @@ use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
 use tracing::instrument;
-use crate::monitor::general::General;
-#[cfg(feature = "fake-sensors")]
-use crate::monitor::fake::Fake;
-#[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
-use crate::monitor::linux::Linux;
-#[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
-use crate::monitor::windows::Windows;
 
 mod fake;
 mod general;
+
+#[deprecated]
 mod hardware_model;
 mod linux;
 mod windows;
@@ -250,9 +252,8 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-    use chrono::Utc;
     use super::*;
+    use chrono::Utc;
 
     #[test]
     fn test_query() {

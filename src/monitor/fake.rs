@@ -15,7 +15,7 @@ impl Fake {
 
 impl Updater for Fake {
     fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> anyhow::Result<()> {
-        for (k, v) in map.iter_mut() {
+        for (_k, v) in map.iter_mut() {
             *v = Some(DataContainer::Int(0));
         }
 

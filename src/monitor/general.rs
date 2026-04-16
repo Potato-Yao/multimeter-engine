@@ -7,8 +7,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use sysinfo::{Disks, System};
 
-struct SysinfoDisk {}
-
 struct BatteryWrapper(Manager, Battery);
 
 unsafe impl Send for BatteryWrapper {}

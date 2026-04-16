@@ -59,9 +59,9 @@ pub extern "C" fn multimeter_shutdown() {
 }
 
 pub fn shutdown() -> Result<PayLoad> {
-    todo!();
     debug!("Shutting down");
 
+    // fixme shutdown doesnt work
     let payload = PayLoad {
         value: "Shutdown initiated.".into(),
         addition: None,

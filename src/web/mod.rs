@@ -8,11 +8,11 @@ use crate::util::payload::PayLoad;
 pub mod model;
 pub mod request_executor;
 
-pub type SERVER_STATE = u32;
+pub type ServerState = u32;
 
-pub const SUCCESS_STATE: SERVER_STATE = 100;
-pub const NOT_FOUND_STATE: SERVER_STATE = 404;
-const INTERNAL_ERROR_STATE: SERVER_STATE = 500;
+pub const SUCCESS_STATE: ServerState = 100;
+pub const NOT_FOUND_STATE: ServerState = 404;
+const INTERNAL_ERROR_STATE: ServerState = 500;
 pub const LATEST_VERSION: u32 = 1;
 const DEFAULT_ID: &str = "__default_id__";
 
