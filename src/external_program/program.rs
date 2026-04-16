@@ -1,5 +1,5 @@
+use crate::external_program::interact_executor::{EOF, InteractExecutor};
 use std::time::Duration;
-use crate::external_program::interact_executor::{InteractExecutor, EOF};
 
 #[derive(PartialEq)]
 pub enum ProgramKind {
@@ -134,7 +134,49 @@ impl ExternalProgram {
         }
     }
 
+    pub fn get_tools() -> anyhow::Result<Vec<String>> {
+        let externals_path = std::path::PathBuf::from(get_local_path(""));
+        let mut tools = Vec::new();
 
+        fn collect_executables(
+            dir: &std::path::Path,
+            base: &std::path::Path,
+            tools: &mut Vec<String>,
+        ) -> anyhow::Result<()> {
+            if !dir.is_dir() {
+                return Ok(());
+            }
+            for entry in std::fs::read_dir(dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                if path.is_dir() {
+                    collect_executables(&path, base, tools)?;
+                } else {
+                    #[cfg(windows)]
+                    {
+                        if path.extension().and_then(|e| e.to_str()) == Some("exe") {
+                            let relative = path.strip_prefix(base).unwrap_or(&path);
+                            tools.push(relative.to_string_lossy().to_string());
+                        }
+                    }
+                    #[cfg(not(windows))]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        if let Ok(meta) = path.metadata() {
+                            if meta.permissions().mode() & 0o111 != 0 {
+                                let relative = path.strip_prefix(base).unwrap_or(&path);
+                                tools.push(relative.to_string_lossy().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(())
+        }
+
+        collect_executables(&externals_path, &externals_path, &mut tools)?;
+        Ok(tools)
+    }
 }
 
 pub fn get_local_path(tool_path: &str) -> String {
@@ -142,7 +184,7 @@ pub fn get_local_path(tool_path: &str) -> String {
     path.pop();
     #[cfg(test)]
     path.pop();
-    
+
     path.push("externals");
     path.push(tool_path);
     path.to_str().unwrap().to_string()
@@ -250,5 +292,16 @@ mod tests {
             //
             program.close();
         };
+    }
+
+    #[test]
+    fn test_get_tools() {
+        match ExternalProgram::get_tools() {
+            Ok(tools) => {
+                println!("Tools found: {:?}", tools);
+                assert!(!tools.is_empty());
+            }
+            Err(e) => panic!("Failed to get tools: {}", e),
+        }
     }
 }
