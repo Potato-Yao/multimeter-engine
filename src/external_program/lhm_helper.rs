@@ -25,6 +25,7 @@ pub struct LhmHelper {
     stream: TcpStream,
 }
 
+#[cfg(target_os = "windows")]
 impl LhmHelper {
     const IP: &'static str = "127.0.0.1";
     const DEFAULT_PORT: u16 = 49200;
@@ -175,7 +176,7 @@ impl LhmHelper {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_os = "windows"))]
 mod tests {
     use super::*;
 

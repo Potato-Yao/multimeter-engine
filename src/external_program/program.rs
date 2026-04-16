@@ -150,7 +150,6 @@ pub fn get_local_path(tool_path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
     use crate::external_program::program::{ExternalProgram, ProgramKind};
 
     #[test]
@@ -175,6 +174,18 @@ mod tests {
                 "CLINIC_OP/CPU/cpuz_x64.exe".to_string(),
                 ProgramKind::Executable,
                 vec![vec![]],
+            );
+            match program.start(0) {
+                Ok(_) => (),
+                Err(e) => panic!("Failed to run program: {}", e),
+            }
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let mut program = ExternalProgram::new_transient(
+                "linux_tools/ui-sample".to_string(),
+                ProgramKind::Executable,
+                vec![vec!["a".to_string()]],
             );
             match program.start(0) {
                 Ok(_) => (),

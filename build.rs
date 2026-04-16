@@ -13,7 +13,9 @@ const WINDOWS_TOOLS: [&str; 5] = [
     "win-active",
 ];
 
-const LINUX_TOOLS: [&str; 0] = [];
+const LINUX_TOOLS: [&str; 1] = [
+    "linux_tools",
+];
 
 fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -35,6 +37,7 @@ fn main() {
     target_root.pop();
     target_root.pop();
     target_root.pop();
+    let target_root = target_root.join("externals");
 
     let profile = env::var("PROFILE").unwrap();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
@@ -50,12 +53,10 @@ fn main() {
         }
 
         if e.file_type().is_dir() {
-            #[cfg(target_os = "linux")]
-            if WINDOWS_TOOLS.contains(&file_name) {
+            if is_windows && LINUX_TOOLS.contains(&file_name) {
                 return false;
             }
-            #[cfg(target_os = "windows")]
-            if LINUX_TOOLS.contains(&file_name) {
+            if !is_windows && WINDOWS_TOOLS.contains(&file_name) {
                 return false;
             }
         }
