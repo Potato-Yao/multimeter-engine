@@ -74,7 +74,6 @@ impl Updater for General {
                 State::Discharging | State::Unknown | State::Empty => false,
             }
         );
-        println!("{}", bat.state());
         if let Some(count) = bat.cycle_count() {
             insert_data!(map, "bat_count", count as i32);
         }
