@@ -70,10 +70,11 @@ impl Updater for General {
             map,
             "bat_state",
             match bat.state() {
-                State::Charging | State::Full => true,
+                State::Charging | State::Full | State::LimitedFull => true,
                 State::Discharging | State::Unknown | State::Empty => false,
             }
         );
+        println!("{}", bat.state());
         if let Some(count) = bat.cycle_count() {
             insert_data!(map, "bat_count", count as i32);
         }
