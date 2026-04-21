@@ -5,7 +5,7 @@ use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use sysinfo::{Disks, System};
+use sysinfo::{Disks, MemoryRefreshKind, System};
 
 struct BatteryWrapper(Manager, Battery);
 
@@ -23,37 +23,15 @@ pub struct General {
 
 impl Updater for General {
     fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        Ok(())
-    }
-
-    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        let disks = Disks::new_with_refreshed_list()
-            .iter()
-            .map(|e| serde_json::to_string(e).unwrap())
-            .collect::<Vec<_>>();
-        insert_data!(map, "disk_disk", disks);
-
-        Ok(())
-    }
-
-    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         self.battery.0.refresh(&mut self.battery.1)?;
-        self.system.0.refresh_all();
+        self.system.0.refresh_memory();
 
-        let bat = &mut self.battery.1;
         let sys = &self.system.0;
+        let bat = &mut self.battery.1;
         let cpu = &sys.cpus()[0];
-        // map.insert(
-        //     "bat_capacity_remain",
-        //     Some(DataContainer::Float(joules_to_watt_hours(
-        //         bat.energy().value as f64,
-        //     ))),
-        // );
-        insert_data!(
-            map,
-            "bat_capacity_remain",
-            joules_to_watt_hours(bat.energy().value as f64)
-        );
+
+        insert_data!(map, "mem_total", byte_to_gb(sys.total_memory()));
+        insert_data!(map, "mem_swap_total", byte_to_gb(sys.total_swap()));
         insert_data!(
             map,
             "bat_capacity_designed",
@@ -63,16 +41,6 @@ impl Updater for General {
             map,
             "bat_capacity_max",
             joules_to_watt_hours(bat.energy_full().value as f64)
-        );
-        insert_data!(map, "bat_rate", bat.energy_rate().value as f64);
-        insert_data!(map, "bat_voltage", bat.voltage().value as f64);
-        insert_data!(
-            map,
-            "bat_state",
-            match bat.state() {
-                State::Charging | State::Full | State::LimitedFull => true,
-                State::Discharging | State::Unknown | State::Empty => false,
-            }
         );
         if let Some(count) = bat.cycle_count() {
             insert_data!(map, "bat_count", count as i32);
@@ -89,9 +57,46 @@ impl Updater for General {
         if let Some(val) = System::host_name() {
             insert_data!(map, "os_host_name", val);
         }
-        insert_data!(map, "mem_total", byte_to_gb(sys.total_memory()));
+        insert_data!(map, "cpu_name", cpu.name());
+
+        Ok(())
+    }
+
+    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        let disks = Disks::new_with_refreshed_list()
+            .iter()
+            .map(|e| serde_json::to_string(e).unwrap())
+            .collect::<Vec<_>>();
+        insert_data!(map, "disk_disk", disks);
+
+        Ok(())
+    }
+
+    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        self.battery.0.refresh(&mut self.battery.1)?;
+        self.system.0.refresh_memory();
+        self.system.0.refresh_cpu_all();
+
+        let bat = &mut self.battery.1;
+        let sys = &self.system.0;
+        let cpu = &sys.cpus()[0];
+
+        insert_data!(
+            map,
+            "bat_capacity_remain",
+            joules_to_watt_hours(bat.energy().value as f64)
+        );
+        insert_data!(map, "bat_rate", bat.energy_rate().value as f64);
+        insert_data!(map, "bat_voltage", bat.voltage().value as f64);
+        insert_data!(
+            map,
+            "bat_state",
+            match bat.state() {
+                State::Charging | State::Full | State::LimitedFull => true,
+                State::Discharging | State::Unknown | State::Empty => false,
+            }
+        );
         insert_data!(map, "mem_used", byte_to_gb(sys.used_memory()));
-        insert_data!(map, "mem_swap_total", byte_to_gb(sys.total_swap()));
         insert_data!(map, "mem_swap_used", byte_to_gb(sys.used_swap()));
         insert_data!(map, "mem_available", byte_to_gb(sys.available_memory()));
         insert_data!(
@@ -99,7 +104,6 @@ impl Updater for General {
             "mem_percentage",
             sys.used_memory() as f64 / sys.total_memory() as f64
         );
-        insert_data!(map, "cpu_name", cpu.name());
         insert_data!(map, "cpu_clock_rms", cpu.frequency());
         insert_data!(map, "cpu_usage", sys.global_cpu_usage() as f64);
 
