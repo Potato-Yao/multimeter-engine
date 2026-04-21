@@ -89,7 +89,10 @@ impl Updater for General {
         if let Some(val) = System::host_name() {
             insert_data!(map, "os_host_name", val);
         }
+        insert_data!(map, "mem_total", byte_to_gb(sys.total_memory()));
         insert_data!(map, "mem_used", byte_to_gb(sys.used_memory()));
+        insert_data!(map, "mem_swap_total", byte_to_gb(sys.total_swap()));
+        insert_data!(map, "mem_swap_used", byte_to_gb(sys.used_swap()));
         insert_data!(map, "mem_available", byte_to_gb(sys.available_memory()));
         insert_data!(
             map,
