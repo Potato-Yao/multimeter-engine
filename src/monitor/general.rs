@@ -5,7 +5,7 @@ use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use sysinfo::{Disks, MemoryRefreshKind, System};
+use sysinfo::{Disks, System};
 
 struct BatteryWrapper(Manager, Battery);
 
@@ -24,7 +24,6 @@ pub struct General {
 impl Updater for General {
     fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         self.battery.0.refresh(&mut self.battery.1)?;
-        self.system.0.refresh_memory();
 
         let sys = &self.system.0;
         let bat = &mut self.battery.1;

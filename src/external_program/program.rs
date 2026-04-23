@@ -16,28 +16,38 @@ pub struct ExternalProgram {
 }
 
 impl ExternalProgram {
-    pub fn new_transient(
-        path: String,
-        program_kind: ProgramKind,
-        args_set: Vec<Vec<String>>,
-    ) -> Self {
+    pub fn new_transient<P, A, In, S>(path: P, program_kind: ProgramKind, args_set: A) -> Self
+    where
+        P: Into<String>,
+        A: IntoIterator<Item = In>,
+        In: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
         ExternalProgram {
-            path,
-            args_set,
+            path: path.into(),
+            args_set: args_set
+                .into_iter()
+                .map(|args| args.into_iter().map(|s| s.into()).collect())
+                .collect(),
             interactive: false,
             program_kind,
             process: None,
         }
     }
 
-    pub fn new_interpreter(
-        path: String,
-        program_kind: ProgramKind,
-        args_set: Vec<Vec<String>>,
-    ) -> Self {
+    pub fn new_interpreter<P, A, In, S>(path: P, program_kind: ProgramKind, args_set: A) -> Self
+    where
+        P: Into<String>,
+        A: IntoIterator<Item = In>,
+        In: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
         ExternalProgram {
-            path,
-            args_set,
+            path: path.into(),
+            args_set: args_set
+                .into_iter()
+                .map(|args| args.into_iter().map(|s| s.into()).collect())
+                .collect(),
             interactive: true,
             program_kind,
             process: None,
@@ -96,6 +106,10 @@ impl ExternalProgram {
             }
         }
     }
+
+    // pub fn stop(&mut self) -> Result<String, String> {
+    //
+    // }
 
     pub fn interact(
         &mut self,
