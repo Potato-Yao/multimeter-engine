@@ -323,7 +323,7 @@ mod tests {
                 Err(e) => panic!("Failed to run program: {}", e),
             }
 
-            std::thread::sleep(Duration::from_secs(5));
+            std::thread::sleep(Duration::from_secs(20));
 
             program.close().unwrap();
         }
