@@ -21,7 +21,7 @@ impl StressTestManager {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(feature = "stress-test", test))]
 mod tests {
     #[test]
     fn test_cpu_stress() {

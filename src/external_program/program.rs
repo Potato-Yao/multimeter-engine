@@ -142,10 +142,14 @@ impl ExternalProgram {
         }
     }
 
-    pub fn close(&mut self) {
-        if let Some(_) = &mut self.process {
+    pub fn close(&mut self) -> anyhow::Result<()> {
+        if let Some(process) = &mut self.process {
+            // todo error handling in the correct way
+            process.close().expect("fuck");
             self.process = None;
         }
+
+        Ok(())
     }
 
     pub fn get_tools() -> anyhow::Result<Vec<String>> {
@@ -206,6 +210,7 @@ pub fn get_local_path(tool_path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
     use crate::external_program::program::{ExternalProgram, ProgramKind};
 
     #[test]
@@ -279,7 +284,7 @@ mod tests {
                 Err(e) => panic!("Interaction failed: {}", e),
             }
 
-            program.close();
+            program.close().unwrap();
         };
     }
 
@@ -306,6 +311,22 @@ mod tests {
             //
             program.close();
         };
+        #[cfg(target_os = "linux")]
+        {
+            let mut program = ExternalProgram::new_interpreter(
+                "linux_tools/ui-sample".to_string(),
+                ProgramKind::Executable,
+                vec![vec!["a".to_string()]],
+            );
+            match program.start(0) {
+                Ok(_) => (),
+                Err(e) => panic!("Failed to run program: {}", e),
+            }
+
+            std::thread::sleep(Duration::from_secs(5));
+
+            program.close().unwrap();
+        }
     }
 
     #[test]

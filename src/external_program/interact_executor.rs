@@ -1,8 +1,10 @@
 use std::io::{Read, Write};
+use std::process::Child;
 
 pub const EOF: &str = "\0";
 
 pub struct InteractExecutor {
+    process: Child,
     stdin: std::process::ChildStdin,
     stdout: std::process::ChildStdout,
 }
@@ -19,11 +21,11 @@ impl InteractExecutor {
             .stdout(std::process::Stdio::piped())
             .spawn()
             .map_err(|e| e.to_string())?;
-
+        
         let stdin = process.stdin.take().ok_or("Failed to open stdin")?;
         let stdout = process.stdout.take().ok_or("Failed to open stdout")?;
 
-        Ok(InteractExecutor { stdin, stdout })
+        Ok(InteractExecutor { process, stdin, stdout })
     }
 
     pub fn execute(&mut self, input: Option<&str>) -> Result<String, String> {
@@ -61,5 +63,11 @@ impl InteractExecutor {
 
     pub fn consume_until(&mut self, wait_for: &str) -> Result<String, String> {
         self.execute_until(None, wait_for)
+    }
+    
+    pub fn close(&mut self) -> Result<String, String> {
+        self.process.kill().map_err(|e| e.to_string())?;
+        
+        Ok("".to_string())
     }
 }
