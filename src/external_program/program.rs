@@ -1,4 +1,5 @@
 use crate::external_program::interact_executor::{EOF, InteractExecutor};
+use anyhow::{Result, anyhow};
 use std::time::Duration;
 
 #[derive(PartialEq)]
@@ -56,9 +57,11 @@ impl ExternalProgram {
 
     /// for transient external programs, starting a program is equivalent to execute it, the return value will be the output of the program.
     /// for interpreter external programs, starting a program will launch the interpreter with the given args, the return value has no meaning.
-    pub fn start(&mut self, args_index: usize) -> Result<String, String> {
+    ///
+    /// @return the initial output. Ok for stdout, Err for stderr
+    pub fn start(&mut self, args_index: usize) -> Result<String> {
         if args_index >= self.args_set.len() {
-            return Err("Invalid args index".to_string());
+            return Err(anyhow!("Invalid args index"));
         }
 
         let args = &self.args_set[args_index];
@@ -95,14 +98,14 @@ impl ExternalProgram {
                 command.args(args);
             }
 
-            let output = command.output().map_err(|e| e.to_string())?;
+            let output = command.output()?;
 
             if output.status.success() {
                 let result = String::from_utf8_lossy(&output.stdout).to_string();
                 Ok(result)
             } else {
                 let error = String::from_utf8_lossy(&output.stderr).to_string();
-                Err(error)
+                Err(anyhow!(error))
             }
         }
     }
@@ -115,22 +118,16 @@ impl ExternalProgram {
     //
     // }
 
-    pub fn interact(
-        &mut self,
-        message: String,
-        wait_for: Option<String>,
-    ) -> Result<String, String> {
+    pub fn interact(&mut self, message: String, wait_for: Option<String>) -> Result<String> {
         if let Some(process) = self.process.as_mut() {
-            let output = process
-                .execute_until(
-                    Some(message.as_str()),
-                    wait_for.unwrap_or(EOF.to_string()).as_str(),
-                )
-                .map_err(|e| e.to_string())?;
+            let output = process.execute_until(
+                Some(message.as_str()),
+                wait_for.unwrap_or(EOF.to_string()).as_str(),
+            )?;
 
             Ok(output)
         } else {
-            Err("Process is not running".to_string())
+            Err(anyhow!("Process is not running"))
         }
     }
 
@@ -146,7 +143,7 @@ impl ExternalProgram {
         }
     }
 
-    pub fn close(&mut self) -> anyhow::Result<()> {
+    pub fn close(&mut self) -> Result<()> {
         if let Some(process) = &mut self.process {
             // todo error handling in the correct way
             process.close().expect("fuck");
@@ -156,7 +153,7 @@ impl ExternalProgram {
         Ok(())
     }
 
-    pub fn get_tools() -> anyhow::Result<Vec<String>> {
+    pub fn get_tools() -> Result<Vec<String>> {
         let externals_path = std::path::PathBuf::from(get_local_path(""));
         let mut tools = Vec::new();
 
@@ -164,7 +161,7 @@ impl ExternalProgram {
             dir: &std::path::Path,
             base: &std::path::Path,
             tools: &mut Vec<String>,
-        ) -> anyhow::Result<()> {
+        ) -> Result<()> {
             if !dir.is_dir() {
                 return Ok(());
             }
@@ -214,8 +211,8 @@ pub fn get_local_path(tool_path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
     use crate::external_program::program::{ExternalProgram, ProgramKind};
+    use std::time::Duration;
 
     #[test]
     fn test_run_transient_command() {
@@ -313,7 +310,7 @@ mod tests {
             //     Err(e) => panic!("Interaction failed: {}", e),
             // }
             //
-            program.close();
+            program.close().unwrap();
         };
         #[cfg(target_os = "linux")]
         {

@@ -1,3 +1,4 @@
+use anyhow::{Result, anyhow};
 use std::io::{Read, Write};
 use std::process::Child;
 
@@ -10,37 +11,44 @@ pub struct InteractExecutor {
 }
 
 impl InteractExecutor {
-    pub fn build(command: &str) -> Result<Self, String> {
+    pub fn build(command: &str) -> Result<Self> {
         #[cfg(windows)]
-        let command = &*command.replace("\\", "/");  // to avoid shell_words treating windows' path as unix's
+        let command = &*command.replace("\\", "/"); // to avoid shell_words treating windows' path as Unix's
 
-        let command = shell_words::split(command).map_err(|e| e.to_string())?;
+        let command = shell_words::split(command)?;
         let mut process = std::process::Command::new(&command[0])
             .args(&command[1..])
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
-            .spawn()
-            .map_err(|e| e.to_string())?;
-        
-        let stdin = process.stdin.take().ok_or("Failed to open stdin")?;
-        let stdout = process.stdout.take().ok_or("Failed to open stdout")?;
+            .spawn()?;
 
-        Ok(InteractExecutor { process, stdin, stdout })
+        let stdin = process
+            .stdin
+            .take()
+            .ok_or(anyhow!("Failed to open stdin"))?;
+        let stdout = process
+            .stdout
+            .take()
+            .ok_or(anyhow!("Failed to open stdout"))?;
+
+        Ok(InteractExecutor {
+            process,
+            stdin,
+            stdout,
+        })
     }
 
-    pub fn execute(&mut self, input: Option<&str>) -> Result<String, String> {
+    pub fn execute(&mut self, input: Option<&str>) -> Result<String> {
         self.execute_until(input, EOF)
     }
 
-    pub fn execute_until(&mut self, input: Option<&str>, wait_for: &str) -> Result<String, String> {
+    pub fn execute_until(&mut self, input: Option<&str>, wait_for: &str) -> Result<String> {
         let content_str = match input {
             Some(content) => format!("{}\n", content),
             None => "".to_string(),
         };
-        self.stdin
-            .write_all(content_str.as_bytes())
-            .map_err(|e| e.to_string())?;
-        self.stdin.flush().map_err(|e| e.to_string())?;
+        self.stdin.write_all(content_str.as_bytes())?;
+        self.stdin.flush()?;
 
         let mut output = String::new();
         let mut buffer = [0; 1];
@@ -54,20 +62,20 @@ impl InteractExecutor {
                         break;
                     }
                 }
-                Err(e) => return Err(e.to_string()),
+                Err(e) => return Err(e.into()),
             }
         }
 
         Ok(output)
     }
 
-    pub fn consume_until(&mut self, wait_for: &str) -> Result<String, String> {
+    pub fn consume_until(&mut self, wait_for: &str) -> Result<String> {
         self.execute_until(None, wait_for)
     }
-    
-    pub fn close(&mut self) -> Result<String, String> {
-        self.process.kill().map_err(|e| e.to_string())?;
-        
-        Ok("".to_string())
+
+    pub fn close(&mut self) -> Result<()> {
+        self.process.kill()?;
+
+        Ok(())
     }
 }
