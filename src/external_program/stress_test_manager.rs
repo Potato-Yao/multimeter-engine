@@ -1,9 +1,17 @@
 use crate::external_program::program::{ExternalProgram, ProgramKind};
 
+use anyhow::{anyhow, Result};
+
 pub struct StressTestManager {
     cpu_test: Option<ExternalProgram>,
     gpu_test: Option<ExternalProgram>,
     ram_test: Option<ExternalProgram>,
+}
+
+pub enum TestKind {
+    Cpu,
+    Gpu,
+    Ram,
 }
 
 #[cfg(all(feature = "stress-test", target_os = "linux"))]
@@ -23,18 +31,44 @@ impl StressTestManager {
             )),
         }
     }
+
+    pub fn start(&mut self, kind: TestKind) -> Result<()> {
+        self.program_mut(kind)?
+            .start(0)
+            .map(|_| ())
+            .map_err(|e| anyhow!(e))
+    }
+
+    pub fn close(&mut self, kind: TestKind) -> Result<()> {
+        self.program_mut(kind)?.close()
+    }
+
+    fn program_mut(&mut self, kind: TestKind) -> Result<&mut ExternalProgram> {
+        match kind {
+            TestKind::Cpu => self
+                .cpu_test
+                .as_mut()
+                .ok_or_else(|| anyhow!("CPU stress test not available")),
+            TestKind::Gpu => self
+                .gpu_test
+                .as_mut()
+                .ok_or_else(|| anyhow!("GPU stress test not available")),
+            TestKind::Ram => self
+                .ram_test
+                .as_mut()
+                .ok_or_else(|| anyhow!("RAM stress test not available")),
+        }
+    }
 }
 
 #[cfg(all(feature = "stress-test", test))]
 mod tests {
     #[test]
+    #[ignore = "runs a real CPU stress test"]
     fn test_cpu_stress() {
         let mut manager = super::StressTestManager::new();
-        if let Some(cpu_test) = &mut manager.cpu_test {
-            let _ = cpu_test.start(0);
-            std::thread::sleep(std::time::Duration::from_secs(30));
-            cpu_test.close().unwrap();
-            println!("damn");
-        }
+        manager.start(super::TestKind::Cpu).unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(30));
+        manager.close(super::TestKind::Cpu).unwrap();
     }
 }

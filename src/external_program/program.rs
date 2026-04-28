@@ -107,6 +107,10 @@ impl ExternalProgram {
         }
     }
 
+    pub fn is_running(&self) -> bool {
+        self.process.is_some()
+    }
+
     // pub fn stop(&mut self) -> Result<String, String> {
     //
     // }
@@ -318,14 +322,17 @@ mod tests {
                 ProgramKind::Executable,
                 vec![vec!["a".to_string()]],
             );
+            println!("{}", program.is_running());
+
             match program.start(0) {
                 Ok(_) => (),
                 Err(e) => panic!("Failed to run program: {}", e),
             }
 
             std::thread::sleep(Duration::from_secs(20));
-
+            println!("{}", program.is_running());
             program.close().unwrap();
+            println!("{}", program.is_running());
         }
     }
 
