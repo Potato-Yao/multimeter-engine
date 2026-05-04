@@ -1,5 +1,4 @@
 use crate::external_program::lhm_helper::LhmHelper;
-use crate::external_program::program::{ExternalProgram, ProgramKind};
 use crate::insert_data;
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;

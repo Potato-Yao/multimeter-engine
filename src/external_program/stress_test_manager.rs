@@ -1,11 +1,10 @@
-use crate::external_program::program::{ExternalProgram, ProgramKind};
-
+use crate::external_program::program::Program;
 use anyhow::{Result, anyhow};
 
 pub struct StressTestManager {
-    cpu_test: Option<ExternalProgram>,
-    gpu_test: Option<ExternalProgram>,
-    ram_test: Option<ExternalProgram>,
+    cpu_test: Option<Program>,
+    gpu_test: Option<Program>,
+    ram_test: Option<Program>,
 }
 
 pub enum TestKind {
@@ -14,31 +13,19 @@ pub enum TestKind {
     Ram,
 }
 
-#[cfg(all(feature = "stress-test", target_os = "linux"))]
+#[cfg(target_os = "linux")]
 impl StressTestManager {
     pub fn new() -> Self {
         Self {
-            cpu_test: Some(ExternalProgram::new_interpreter(
-                "linux/stress",
-                ProgramKind::Executable,
-                vec![vec!["--quiet", "--cpu", "16"]],
-            )),
-            gpu_test: Some(ExternalProgram::new_interpreter(
-                "linux/gpu_burn",
-                ProgramKind::Executable,
-                vec![vec!["-h"]],
-            )),
-            ram_test: Some(ExternalProgram::new_interpreter(
-                "linux/stress",
-                ProgramKind::Executable,
-                vec![vec!["--quiet", "--vm", "16"]],
-            )),
+            cpu_test: Program::get_test(TestKind::Cpu).into(),
+            gpu_test: Program::get_test(TestKind::Gpu).into(),
+            ram_test: Program::get_test(TestKind::Ram).into(),
         }
     }
 
     pub fn start(&mut self, kind: TestKind) -> Result<()> {
         self.program_mut(kind)?
-            .start(0)
+            .start(Some(0))
             .map(|_| ())
             .map_err(|e| anyhow!(e))
     }
@@ -47,7 +34,7 @@ impl StressTestManager {
         self.program_mut(kind)?.close()
     }
 
-    fn program_mut(&mut self, kind: TestKind) -> Result<&mut ExternalProgram> {
+    fn program_mut(&mut self, kind: TestKind) -> Result<&mut Program> {
         match kind {
             TestKind::Cpu => self
                 .cpu_test
@@ -65,10 +52,9 @@ impl StressTestManager {
     }
 }
 
-#[cfg(all(feature = "stress-test", test))]
+#[cfg(test)]
 mod tests {
     #[test]
-    #[ignore = "runs a real CPU stress test"]
     fn test_cpu_stress() {
         let mut manager = super::StressTestManager::new();
         manager.start(super::TestKind::Cpu).unwrap();
@@ -77,7 +63,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "runs a real GPU stress test"]
     fn test_gpu_stress() {
         let mut manager = super::StressTestManager::new();
         manager.start(super::TestKind::Gpu).unwrap();

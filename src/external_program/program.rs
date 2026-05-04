@@ -1,199 +1,200 @@
-use crate::external_program::interact_executor::{InteractExecutor, EOF};
-use anyhow::{anyhow, Result};
+use crate::external_program::stress_test_manager::TestKind;
+use anyhow::{Result, anyhow};
+use std::ffi::OsStr;
+use std::io::{Read, Write};
+use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
-#[derive(PartialEq)]
-pub enum ProgramKind {
-    Executable,
-    Command,
+pub struct Program {
+    start_command: Command,
+    pre_args: Option<Vec<String>>,
+    args_set: Option<Vec<Vec<String>>>,
+    process: Option<Child>,
+    stdin: Option<ChildStdin>,
+    stdout: Option<ChildStdout>,
+    standalone: bool, // whether to kill the process when the instance is dropping
 }
 
-pub struct ExternalProgram {
-    path: String,
-    args_set: Vec<Vec<String>>,
-    interactive: bool,
-    program_kind: ProgramKind,
-    process: Option<InteractExecutor>,
-}
-
-impl ExternalProgram {
-    pub fn new_transient<P, A, In, S>(path: P, program_kind: ProgramKind, args_set: A) -> Self
+impl Program {
+    fn new<T, A, I, S, II, SS>(start_command: T, pre_args: Option<II>, args_set: Option<A>) -> Self
     where
-        P: Into<String>,
-        A: IntoIterator<Item = In>,
-        In: IntoIterator<Item = S>,
+        T: AsRef<OsStr>,
+        A: IntoIterator<Item = I>,
+        I: IntoIterator<Item = S>,
         S: Into<String>,
+        II: IntoIterator<Item = SS>,
+        SS: Into<String>,
     {
-        ExternalProgram {
-            path: path.into(),
-            args_set: args_set
-                .into_iter()
-                .map(|args| args.into_iter().map(|s| s.into()).collect())
-                .collect(),
-            interactive: false,
-            program_kind,
+        Self {
+            start_command: Command::new(start_command),
+            pre_args: pre_args.map(|p| p.into_iter().map(|e| e.into()).collect()),
+            args_set: args_set.map(|a| {
+                a.into_iter()
+                    .map(|e| e.into_iter().map(|e| e.into()).collect())
+                    .collect()
+            }),
             process: None,
+            stdin: None,
+            stdout: None,
+            standalone: false,
         }
     }
 
-    pub fn new_interpreter<P, A, In, S>(path: P, program_kind: ProgramKind, args_set: A) -> Self
+    /// command is which once been called will execute automatically and finish itself after everything has done.
+    /// command will run on bash on linux, cmd on windows
+    pub fn new_command<T, A, I, S>(start_command: T, args_set: Option<A>) -> Self
     where
-        P: Into<String>,
-        A: IntoIterator<Item = In>,
-        In: IntoIterator<Item = S>,
+        T: AsRef<OsStr>,
+        A: IntoIterator<Item = I>,
+        I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        ExternalProgram {
-            path: path.into(),
-            args_set: args_set
-                .into_iter()
-                .map(|args| args.into_iter().map(|s| s.into()).collect())
-                .collect(),
-            interactive: true,
-            program_kind,
-            process: None,
-        }
-    }
-
-    /// for transient external programs, starting a program is equivalent to execute it, the return value will be the output of the program.
-    /// for interpreter external programs, starting a program will launch the interpreter with the given args, the return value has no meaning.
-    ///
-    /// @return the initial output. Ok for stdout, Err for stderr
-    pub fn start(&mut self, args_index: usize) -> Result<String> {
-        if args_index >= self.args_set.len() {
-            return Err(anyhow!("Invalid args index"));
-        }
-
-        let args = &self.args_set[args_index];
-        let command_name = match self.program_kind {
-            ProgramKind::Executable => get_local_path(&*self.path),
-            ProgramKind::Command => self.path.clone(),
+        let pre_args = if cfg!(windows) {
+            Some(vec!["cmd", "/C"])
+        } else {
+            None
         };
 
-        // use InteractExecutor for interpreter type programs, std::process::Command for transient type programs
-        if self.interactive {
-            let mut command = format!("{} {}", command_name, args.join(" "));
-            #[cfg(windows)]
-            {
-                if self.program_kind == ProgramKind::Command {
-                    command = format!("cmd /C {}", command);
-                } else if self.program_kind == ProgramKind::Executable {
-                    command = format!("{}", command);
+        Self::new(start_command, pre_args, args_set)
+    }
+
+    /// this runs the tool under directory `externals`
+    /// for example, if you want to run `stress` at `./externals/linux/stress`, the `tool_path` should be `stress`.
+    /// the tool directory will be found automatically
+    pub fn new_external_tool<T, A, I, S>(tool_path: T, args_set: Option<A>) -> Self
+    where
+        T: AsRef<str>,
+        A: IntoIterator<Item = I>,
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self::new(
+            get_local_path(tool_path.as_ref()),
+            None::<I>,
+            args_set,
+        )
+    }
+
+    /// after calling it, drop the instance of Program will not kill the process it calls
+    pub fn make_process_standalone(&mut self) {
+        self.standalone = true;
+    }
+
+    pub fn start(&mut self, args_index: Option<usize>) -> Result<()> {
+        if self.is_running() {
+            return Err(anyhow!("Program is already running"));
+        }
+        if args_index.is_some() && self.args_set.is_none() {
+            return Err(anyhow!("This program has no preset arguments"));
+        }
+
+        if let Some(index) = args_index {
+            if index >= self.args_set.as_ref().unwrap().len() {
+                return Err(anyhow!("Index out of bounds of arguments set"));
+            }
+
+            let args = &self.args_set.as_ref().unwrap()[args_index.unwrap()];
+            self.start_command.args(args);
+        }
+
+        self.start_command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
+
+        let mut process = self.start_command.spawn()?;
+        self.stdin = Some(
+            process
+                .stdin
+                .take()
+                .ok_or(anyhow!("Failed to open stdin"))?,
+        );
+        self.stdout = Some(
+            process
+                .stdout
+                .take()
+                .ok_or(anyhow!("Failed to open stdout"))?,
+        );
+        self.process = Some(process);
+
+        Ok(())
+    }
+
+    pub fn close(&mut self) -> Result<()> {
+        // it makes sure the unwrap below is safe
+        if !self.is_running() {
+            return Err(anyhow!("Program is not running"));
+        }
+
+        self.process.as_mut().unwrap().kill()?;
+        self.process = None;
+        self.stdin = None;
+        self.stdout = None;
+
+        Ok(())
+    }
+
+    pub fn write<T>(&mut self, content: T) -> Result<()>
+    where
+        T: AsRef<[u8]>,
+    {
+        if !self.is_running() {
+            return Err(anyhow!("Program is not running"));
+        }
+
+        let stdin = self.stdin.as_mut().unwrap();
+        stdin.write_all(content.as_ref())?;
+        stdin.flush()?;
+
+        Ok(())
+    }
+
+    pub fn read(&mut self) -> Result<String> {
+        if !self.is_running() {
+            return Err(anyhow!("Program is not running"));
+        }
+
+        let mut output = String::new();
+        let mut buffer = [0; 1];
+        loop {
+            match self.stdout.as_mut().unwrap().read(&mut buffer) {
+                Ok(0) => break,
+                Ok(_) => {
+                    let ch = buffer[0] as char;
+                    output.push(ch);
                 }
-            }
-
-            let process = InteractExecutor::build(&*command)?;
-            // std::thread::sleep(Duration::from_secs(3));
-
-            self.process = Some(process);
-            Ok(String::new())
-        } else {
-            let mut command;
-            if cfg![windows] && self.program_kind == ProgramKind::Command {
-                command = std::process::Command::new("cmd");
-                command.args(&["/C", &self.path]);
-                command.args(args);
-            } else {
-                command = std::process::Command::new(command_name);
-                command.args(args);
-            }
-
-            let output = command.output()?;
-
-            if output.status.success() {
-                let result = String::from_utf8_lossy(&output.stdout).to_string();
-                Ok(result)
-            } else {
-                let error = String::from_utf8_lossy(&output.stderr).to_string();
-                Err(anyhow!(error))
+                Err(e) => return Err(e.into()),
             }
         }
+
+        Ok(output)
     }
 
     pub fn is_running(&self) -> bool {
         self.process.is_some()
     }
+}
 
-    // pub fn stop(&mut self) -> Result<String, String> {
-    //
-    // }
-
-    pub fn interact(&mut self, message: String, wait_for: Option<String>) -> Result<String> {
-        if let Some(process) = self.process.as_mut() {
-            let output = process.execute_until(
-                Some(message.as_str()),
-                wait_for.unwrap_or(EOF.to_string()).as_str(),
-            )?;
-
-            Ok(output)
-        } else {
-            Err(anyhow!("Process is not running"))
-        }
-    }
-
-    pub fn consume_initial_output(&mut self, wait_for: String) -> Result<String, String> {
-        if let Some(process) = self.process.as_mut() {
-            let output = process
-                .consume_until(wait_for.as_str())
-                .map_err(|e| e.to_string())?;
-
-            Ok(output)
-        } else {
-            Err("Process is not running".to_string())
-        }
-    }
-
-    pub fn close(&mut self) -> Result<()> {
-        if let Some(process) = &mut self.process {
-            // todo error handling in the correct way
-            process.close().expect("fuck");
-            self.process = None;
-        }
-
-        Ok(())
-    }
-
-    pub fn get_tools() -> Result<Vec<String>> {
-        let externals_path = std::path::PathBuf::from(get_local_path(""));
-        let mut tools = Vec::new();
-
-        fn collect_executables(
-            dir: &std::path::Path,
-            base: &std::path::Path,
-            tools: &mut Vec<String>,
-        ) -> Result<()> {
-            if !dir.is_dir() {
-                return Ok(());
+#[cfg(feature = "stress-test")]
+impl Program {
+    pub fn get_test(kind: TestKind) -> Self {
+        #[cfg(target_os = "linux")]
+        match kind {
+            TestKind::Cpu => {
+                Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--cpu", "16"]]))
             }
-            for entry in std::fs::read_dir(dir)? {
-                let entry = entry?;
-                let path = entry.path();
-                if path.is_dir() {
-                    collect_executables(&path, base, tools)?;
-                } else {
-                    #[cfg(windows)]
-                    {
-                        if path.extension().and_then(|e| e.to_str()) == Some("exe") {
-                            let relative = path.strip_prefix(base).unwrap_or(&path);
-                            tools.push(relative.to_string_lossy().to_string());
-                        }
-                    }
-                    #[cfg(not(windows))]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        if let Ok(meta) = path.metadata() {
-                            if meta.permissions().mode() & 0o111 != 0 {
-                                let relative = path.strip_prefix(base).unwrap_or(&path);
-                                tools.push(relative.to_string_lossy().to_string());
-                            }
-                        }
-                    }
-                }
+            TestKind::Gpu => Self::new_external_tool("gpu_burn", Some(vec![vec!["-h"]])),
+            TestKind::Ram => {
+                Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--vm", "16"]]))
             }
-            Ok(())
         }
+        // todo windows side
+    }
+}
 
-        collect_executables(&externals_path, &externals_path, &mut tools)?;
-        Ok(tools)
+impl Drop for Program {
+    fn drop(&mut self) {
+        if self.is_running() && !self.standalone {
+            self.close().unwrap();
+        }
     }
 }
 
@@ -205,141 +206,62 @@ pub fn get_local_path(tool_path: &str) -> String {
 
     path.push("externals");
     path.push(tool_path);
+
     path.to_str().unwrap().to_string()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::external_program::program::{ExternalProgram, ProgramKind};
-    use std::time::Duration;
+    use super::*;
 
     #[test]
-    fn test_run_transient_command() {
-        let mut program = ExternalProgram::new_transient(
-            "echo".to_string(),
-            ProgramKind::Command,
-            vec![vec!["Hello,".to_string(), "World!".to_string()]],
-        );
+    fn test_command() {
+        let mut p = Program::new_command("head", Some(vec![vec!["-c", "2"]]));
 
-        match program.start(0) {
-            Ok(output) => assert_eq!(output.trim(), "Hello, World!"),
-            Err(e) => panic!("Failed to run transient program: {}", e),
-        }
+        p.start(Some(0)).unwrap();
+        p.write("hi").unwrap();
+        assert_eq!(p.read().unwrap(), "hi");
     }
 
     #[test]
-    fn test_run_transient_tool() {
-        #[cfg(windows)]
-        {
-            let mut program = ExternalProgram::new_transient(
-                "CLINIC_OP/CPU/cpuz_x64.exe".to_string(),
-                ProgramKind::Executable,
-                vec![vec![]],
-            );
-            match program.start(0) {
-                Ok(_) => (),
-                Err(e) => panic!("Failed to run program: {}", e),
-            }
-        }
-        #[cfg(target_os = "linux")]
-        {
-            let mut program = ExternalProgram::new_transient(
-                "linux/ui-sample".to_string(),
-                ProgramKind::Executable,
-                vec![vec!["a".to_string()]],
-            );
-            match program.start(0) {
-                Ok(_) => (),
-                Err(e) => panic!("Failed to run program: {}", e),
-            }
-        }
+    fn test_external_tool() {
+        let mut p = Program::new_external_tool("ui-sample", None::<Vec<Vec<String>>>);
+
+        p.start(None).unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(10));
+        p.close().unwrap();
     }
 
     #[test]
-    fn test_run_interpreter_command() {
-        #[cfg(windows)]
+    #[ignore]
+    fn test_drop() {
         {
-            let mut program = ExternalProgram::new_interpreter(
-                // "python".to_string(),
-                "diskpart".to_string(),
-                ProgramKind::Command,
-                vec![vec![]],
-            );
+            let mut p = Program::new_external_tool("ui-sample", None::<Vec<Vec<String>>>);
 
-            if let Err(e) = program.start(0) {
-                panic!("Failed to start program: {}", e);
-            }
-
-            program
-                .consume_initial_output("DISKPART>".to_string())
-                .unwrap();
-
-            match program.interact("list disk".to_string(), Some("DISKPART>".to_string())) {
-                // match program.interact("print(\"hi\")".to_string(), Some(">>>".to_string())) {
-                Ok(output) => {
-                    println!("The output: {}", output);
-                    assert!(!output.is_empty());
-                    assert!(output.to_lowercase().contains("disk"));
-                }
-                Err(e) => panic!("Interaction failed: {}", e),
-            }
-
-            program.close().unwrap();
-        };
-    }
-
-    #[test]
-    fn test_run_interpreter_tool() {
-        #[cfg(windows)]
-        {
-            let mut program = ExternalProgram::new_interpreter(
-                "win-activate/MAS_AIO.cmd".to_string(),
-                ProgramKind::Executable,
-                vec![vec![]],
-            );
-
-            if let Err(e) = program.start(0) {
-                panic!("Failed to start program: {}", e);
-            }
-
-            std::thread::sleep(Duration::from_secs(2));
-
-            // match program.interact("1".to_string(), None) {
-            //     Ok(_) => {}
-            //     Err(e) => panic!("Interaction failed: {}", e),
-            // }
-            //
-            program.close().unwrap();
-        };
-        #[cfg(target_os = "linux")]
-        {
-            let mut program = ExternalProgram::new_interpreter(
-                "linux/ui-sample".to_string(),
-                ProgramKind::Executable,
-                vec![vec!["a".to_string()]],
-            );
-            println!("{}", program.is_running());
-
-            match program.start(0) {
-                Ok(_) => (),
-                Err(e) => panic!("Failed to run program: {}", e),
-            }
-
-            std::thread::sleep(Duration::from_secs(20));
-            println!("{}", program.is_running());
-            program.close().unwrap();
-            println!("{}", program.is_running());
+            p.start(None).unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(5));
         }
+        std::thread::sleep(std::time::Duration::from_secs(5));
     }
 
     #[test]
-    fn test_get_tools() {
-        match ExternalProgram::get_tools() {
-            Ok(tools) => {
-                println!("Tools found: {:?}", tools);
-                assert!(!tools.is_empty());
-            }
-            Err(e) => panic!("Failed to get tools: {}", e),
+    #[ignore]
+    fn test_standalone() {
+        let mut p = Program::new_external_tool("ui-sample", None::<Vec<Vec<String>>>);
+        p.make_process_standalone();
+
+        p.start(None).unwrap();
+    }
+
+    #[test]
+    fn test_stress_test() {
+        #[cfg(feature = "stress-test")]
+        {
+            let mut test = Program::get_test(TestKind::Cpu);
+            test.start(Some(0)).unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(10));
+            test.close().unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(10));
         }
     }
 }
