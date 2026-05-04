@@ -1,6 +1,6 @@
 use crate::external_program::program::{ExternalProgram, ProgramKind};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 pub struct StressTestManager {
     cpu_test: Option<ExternalProgram>,
@@ -19,13 +19,17 @@ impl StressTestManager {
     pub fn new() -> Self {
         Self {
             cpu_test: Some(ExternalProgram::new_interpreter(
-                "linux_tools/stress",
+                "linux/stress",
                 ProgramKind::Executable,
                 vec![vec!["--quiet", "--cpu", "16"]],
             )),
-            gpu_test: None,
+            gpu_test: Some(ExternalProgram::new_interpreter(
+                "linux/gpu_burn",
+                ProgramKind::Executable,
+                vec![vec!["-h"]],
+            )),
             ram_test: Some(ExternalProgram::new_interpreter(
-                "linux_tools/stress",
+                "linux/stress",
                 ProgramKind::Executable,
                 vec![vec!["--quiet", "--vm", "16"]],
             )),
@@ -70,5 +74,14 @@ mod tests {
         manager.start(super::TestKind::Cpu).unwrap();
         std::thread::sleep(std::time::Duration::from_secs(30));
         manager.close(super::TestKind::Cpu).unwrap();
+    }
+
+    #[test]
+    #[ignore = "runs a real GPU stress test"]
+    fn test_gpu_stress() {
+        let mut manager = super::StressTestManager::new();
+        manager.start(super::TestKind::Gpu).unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(30));
+        manager.close(super::TestKind::Gpu).unwrap();
     }
 }

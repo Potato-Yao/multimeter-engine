@@ -5,18 +5,6 @@ use std::{
 };
 use walkdir::WalkDir;
 
-const WINDOWS_TOOLS: [&str; 5] = [
-    "CLINIC_OP",
-    "cpuburn",
-    "FurMark_win64",
-    "LibreHardwareMonitorWrapper",
-    "win-active",
-];
-
-const LINUX_TOOLS: [&str; 1] = [
-    "linux_tools",
-];
-
 fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
 
@@ -44,28 +32,22 @@ fn main() {
     let is_release = profile == "release";
     let is_windows = target_os == "windows";
 
-    // config what to copy
-    let walker = WalkDir::new(&src_root).into_iter().filter_entry(|e| {
-        let file_name = e.file_name().to_str().unwrap_or("");
+    let platform_dir = if is_windows {
+        src_root.join("windows")
+    } else {
+        src_root.join("linux")
+    };
 
-        if is_release && is_windows && file_name == "LibreHardwareMonitorWrapper" {
+    let walker = WalkDir::new(&platform_dir).into_iter().filter_entry(|e| {
+        if is_release && is_windows && e.file_name() == "LibreHardwareMonitorWrapper" {
             return false;
-        }
-
-        if e.file_type().is_dir() {
-            if is_windows && LINUX_TOOLS.contains(&file_name) {
-                return false;
-            }
-            if !is_windows && WINDOWS_TOOLS.contains(&file_name) {
-                return false;
-            }
         }
         true
     });
 
     for entry in walker.filter_map(|e| e.ok()) {
         let path = entry.path();
-        let relative_path = path.strip_prefix(&src_root).unwrap();
+        let relative_path = path.strip_prefix(&platform_dir).unwrap();
         let target_path = target_root.join(relative_path);
 
         if path.is_dir() {
@@ -76,7 +58,8 @@ fn main() {
     }
 
     if is_release && is_windows {
-        let lhm_project = src_root.join("LibreHardwareMonitorWrapper/LibreHardwareMonitorWrapper.csproj");
+        let lhm_project =
+            platform_dir.join("LibreHardwareMonitorWrapper/LibreHardwareMonitorWrapper.csproj");
         let lhm_out = target_root.join("LibreHardwareMonitorWrapper/build");
 
         println!("cargo:warning=Building LibreHardwareMonitorWrapper...");

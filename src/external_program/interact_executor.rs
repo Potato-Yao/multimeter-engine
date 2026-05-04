@@ -1,5 +1,6 @@
 use anyhow::{Result, anyhow};
 use std::io::{Read, Write};
+use std::path::Path;
 use std::process::Child;
 
 pub const EOF: &str = "\0";
@@ -16,11 +17,16 @@ impl InteractExecutor {
         let command = &*command.replace("\\", "/"); // to avoid shell_words treating windows' path as Unix's
 
         let command = shell_words::split(command)?;
-        let mut process = std::process::Command::new(&command[0])
-            .args(&command[1..])
+        let mut cmd = std::process::Command::new(&command[0]);
+        cmd.args(&command[1..])
             .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()?;
+            .stdout(std::process::Stdio::piped());
+
+        if let Some(parent) = Path::new(&command[0]).parent() {
+            cmd.current_dir(parent);
+        }
+
+        let mut process = cmd.spawn()?;
 
         let stdin = process
             .stdin

@@ -1,12 +1,12 @@
 /target
 
 /externals/*
-externals/LibreHardwareMonitorWrapper/.idea
-externals/LibreHardwareMonitorWrapper/.vs
-externals/LibreHardwareMonitorWrapper/bin
-externals/LibreHardwareMonitorWrapper/build
-externals/LibreHardwareMonitorWrapper/obj
-!externals/LibreHardwareMonitorWrapper
+externals/windows/LibreHardwareMonitorWrapper/.idea
+externals/windows/LibreHardwareMonitorWrapper/.vs
+externals/windows/LibreHardwareMonitorWrapper/bin
+externals/windows/LibreHardwareMonitorWrapper/build
+externals/windows/LibreHardwareMonitorWrapper/obj
+!externals/windows/LibreHardwareMonitorWrapper
 
 .idea
 

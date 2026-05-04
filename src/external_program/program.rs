@@ -1,6 +1,5 @@
-use crate::external_program::interact_executor::{EOF, InteractExecutor};
-use anyhow::{Result, anyhow};
-use std::time::Duration;
+use crate::external_program::interact_executor::{InteractExecutor, EOF};
+use anyhow::{anyhow, Result};
 
 #[derive(PartialEq)]
 pub enum ProgramKind {
@@ -83,7 +82,7 @@ impl ExternalProgram {
             }
 
             let process = InteractExecutor::build(&*command)?;
-            std::thread::sleep(Duration::from_secs(3));
+            // std::thread::sleep(Duration::from_secs(3));
 
             self.process = Some(process);
             Ok(String::new())
@@ -245,7 +244,7 @@ mod tests {
         #[cfg(target_os = "linux")]
         {
             let mut program = ExternalProgram::new_transient(
-                "linux_tools/ui-sample".to_string(),
+                "linux/ui-sample".to_string(),
                 ProgramKind::Executable,
                 vec![vec!["a".to_string()]],
             );
@@ -315,7 +314,7 @@ mod tests {
         #[cfg(target_os = "linux")]
         {
             let mut program = ExternalProgram::new_interpreter(
-                "linux_tools/ui-sample".to_string(),
+                "linux/ui-sample".to_string(),
                 ProgramKind::Executable,
                 vec![vec!["a".to_string()]],
             );
