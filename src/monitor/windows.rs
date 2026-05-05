@@ -1,4 +1,5 @@
 use crate::external_program::lhm_helper::LhmHelper;
+use crate::external_program::program::Program;
 use crate::insert_data;
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
@@ -117,7 +118,8 @@ impl Windows {
 
         // THE CODE BELOW IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
         let regex_cpu_temperature_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
-        let regex_cpu_tjmax_last = regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
+        let regex_cpu_tjmax_last =
+            regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
         let regex_cpu_voltage_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_clock_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_clock_last = regex::Regex::new(r"^Core #\d{1,2}$").unwrap();
@@ -130,9 +132,12 @@ impl Windows {
                 map.insert("cpu_temperature".to_string(), sensor.index);
             } else if sensor.name == "CPU Core #1" && sensor.info == "Temperature" {
                 map.insert("cpu_temperature_first".to_string(), sensor.index);
-            } else if regex_cpu_temperature_last.is_match(&sensor.name) && sensor.info == "Temperature" {
+            } else if regex_cpu_temperature_last.is_match(&sensor.name)
+                && sensor.info == "Temperature"
+            {
                 map.insert("cpu_temperature_last".to_string(), sensor.index);
-            } else if sensor.name == "CPU Core #1 Distance to TjMax" && sensor.info == "Temperature" {
+            } else if sensor.name == "CPU Core #1 Distance to TjMax" && sensor.info == "Temperature"
+            {
                 map.insert("cpu_tjmax_first".to_string(), sensor.index);
             } else if regex_cpu_tjmax_last.is_match(&sensor.name) && sensor.info == "Temperature" {
                 map.insert("cpu_tjmax_last".to_string(), sensor.index);
@@ -198,7 +203,9 @@ impl Windows {
                 map.insert("bat_rate".to_string(), sensor.index);
             } else if sensor.name == "Temperature 1" && sensor.info == "Temperature" {
                 map.insert("disk_temperature_first".to_string(), sensor.index);
-            } else if regex_disk_temperature_last.is_match(&sensor.name) && sensor.info == "Temperature" {
+            } else if regex_disk_temperature_last.is_match(&sensor.name)
+                && sensor.info == "Temperature"
+            {
                 map.insert("disk_temperature_last".to_string(), sensor.index);
             }
         }
@@ -296,76 +303,78 @@ impl Windows {
         Ok(())
     }
 
-    fn set_activation_state(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) {
-        let mut slmgr = ExternalProgram::new_transient(
-            "cscript".to_string(),
-            ProgramKind::Command,
-            vec![vec![
+    fn set_activation_state(
+        &mut self,
+        map: &mut HashMap<&str, Option<DataContainer>>,
+    ) -> Result<()> {
+        let mut slmgr = Program::new_command(
+            "cscript",
+            Some(vec![vec![
                 "//NoLogo".to_string(),
                 "C:\\Windows\\System32\\slmgr.vbs".to_string(),
                 "/xpr".to_string(),
-            ]],
+            ]]),
         );
-        match slmgr.start(0) {
-            Ok(output) => {
-                if output.contains("permanently activated") || output.contains("计算机已永久激活") {
-                    insert_data!(map, "os_activated", true);
-                } else {
-                    insert_data!(map, "os_activated", false);
-                }
-            }
-            Err(e) => {
-                debug!("Failed to query OS activation status with error {:?}", e);
-            }
+
+        slmgr.start(Some(0))?;
+
+        if slmgr.read()?.contains("permanently activated")
+            || slmgr.read()?.contains("计算机已永久激活")
+        {
+            insert_data!(map, "os_activated", true);
+        } else {
+            insert_data!(map, "os_activated", false);
         }
+
+        Ok(())
     }
 
-    fn set_disk_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) {
-        let mut diskpart = ExternalProgram::new_interpreter(
-            "diskpart".to_string(),
-            ProgramKind::Command,
-            vec![vec![]],
-        );
-        if let Err(e) = diskpart.start(0) {
-            debug!("Failed to start diskpart with error {:?}", e);
-        } else {
-            diskpart
-                .consume_initial_output("DISKPART>".to_string())
-                .unwrap();
+    fn set_disk_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+        let mut diskpart = Program::new_command("diskpart", None);
 
-            match diskpart.interact("list disk".to_string(), Some("DISKPART>".to_string())) {
-                Ok(output) => {
-                    let mut res = Vec::new();
-                    let reg = Regex::new(r"\s+").unwrap();
-                    let output: Vec<&str> = output.trim().split("\n").collect();
-                    for i in 2..output.len() {
-                        // ignore title lines
-                        let line: Vec<&str> = reg.split(output[i].trim()).collect();
-                        if line[0] == "Disk" && line.len() >= 4 {
-                            // so it is disk info line
-                            res.push(line[3]);
-                        }
-                    }
+        diskpart.start(None)?;
 
-                    map.insert(
-                        "disk_disk_size",
-                        if !res.is_empty() {
-                            let sizes: Vec<DataContainer> = res
-                                .iter()
-                                .map(|s| DataContainer::from(s.parse::<f64>().unwrap()))
-                                .collect();
-                            Some(DataContainer::Array(sizes))
-                        } else {
-                            None
-                        },
-                    );
-                }
-                Err(e) => {
-                    debug!("Failed to query disk information with error {:?}", e);
-                }
-            }
-        }
-        diskpart.close();
+        diskpart.read()?;
+        diskpart.write("list disk")?;
+
+        // diskpart
+        //     .consume_initial_output("DISKPART>".to_string())
+        //     .unwrap();
+
+        // match diskpart.interact("list disk".to_string(), Some("DISKPART>".to_string())) {
+        //     Ok(output) => {
+        //         let mut res = Vec::new();
+        //         let reg = Regex::new(r"\s+").unwrap();
+        //         let output: Vec<&str> = output.trim().split("\n").collect();
+        //         for i in 2..output.len() {
+        //             // ignore title lines
+        //             let line: Vec<&str> = reg.split(output[i].trim()).collect();
+        //             if line[0] == "Disk" && line.len() >= 4 {
+        //                 // so it is disk info line
+        //                 res.push(line[3]);
+        //             }
+        //         }
+        //
+        //         map.insert(
+        //             "disk_disk_size",
+        //             if !res.is_empty() {
+        //                 let sizes: Vec<DataContainer> = res
+        //                     .iter()
+        //                     .map(|s| DataContainer::from(s.parse::<f64>().unwrap()))
+        //                     .collect();
+        //                 Some(DataContainer::Array(sizes))
+        //             } else {
+        //                 None
+        //             },
+        //         );
+        //     }
+        //     Err(e) => {
+        //         debug!("Failed to query disk information with error {:?}", e);
+        //     }
+        // }
+        diskpart.close()?;
+
+        Ok(())
     }
 }
 
