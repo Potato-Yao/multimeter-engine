@@ -69,7 +69,7 @@ impl From<DataContainer> for String {
             DataContainer::Boolean(v) => v.to_string(),
             DataContainer::Array(v) => v
                 .into_iter()
-                .map(|item| String::from(item))
+                .map(String::from)
                 .collect::<Vec<String>>()
                 .join(", "),
         }

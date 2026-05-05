@@ -88,6 +88,10 @@ impl Program {
             return Err(anyhow!("This program has no preset arguments"));
         }
 
+        if let Some(pre_args) = &self.pre_args {
+            self.start_command.args(pre_args);
+        }
+
         if let Some(index) = args_index {
             if index >= self.args_set.as_ref().unwrap().len() {
                 return Err(anyhow!("Index out of bounds of arguments set"));

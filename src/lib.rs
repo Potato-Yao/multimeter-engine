@@ -36,8 +36,10 @@ pub extern "C" fn multimeter_init() -> i32 {
     }
 }
 
+/// # Safety
+/// safe
 #[unsafe(no_mangle)]
-pub extern "C" fn multimeter_query(input: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn multimeter_query(input: *const c_char) -> *mut c_char {
     if input.is_null() {
         return std::ptr::null_mut();
     }

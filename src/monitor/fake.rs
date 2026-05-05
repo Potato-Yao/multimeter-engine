@@ -14,7 +14,7 @@ impl Fake {
 }
 
 impl Updater for Fake {
-    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> anyhow::Result<()> {
+    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         for (_k, v) in map.iter_mut() {
             *v = Some(DataContainer::Int(0));
         }
@@ -22,15 +22,15 @@ impl Updater for Fake {
         Ok(())
     }
 
-    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> anyhow::Result<()> {
+    fn update_slow(&mut self, _map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         Ok(())
     }
 
-    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> anyhow::Result<()> {
+    fn update(&mut self, _map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         Ok(())
     }
 
-    fn shutdown(&mut self) -> anyhow::Result<()> {
+    fn shutdown(&mut self) -> Result<()> {
         todo!()
     }
 }

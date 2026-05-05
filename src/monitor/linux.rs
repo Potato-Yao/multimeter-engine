@@ -44,9 +44,8 @@ impl PowerCalculator {
 }
 
 enum State {
-    TEMP,
-    FAN,
-    BAT,
+    Temp,
+    Fan,
 }
 
 pub struct Linux {
@@ -62,7 +61,7 @@ impl Updater for Linux {
         Ok(())
     }
 
-    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn update_slow(&mut self, _map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
         Ok(())
     }
 
@@ -83,10 +82,7 @@ impl Updater for Linux {
 impl Linux {
     pub fn build() -> Result<Arc<Mutex<Self>>> {
         let lm_sensor = lm_sensors::Initializer::default().initialize()?;
-        let nvml = match Nvml::init() {
-            Ok(n) => Some(n),
-            _ => None,
-        };
+        let nvml = Nvml::init().ok();
 
         Ok(Arc::new(Mutex::new(Self {
             sensor: SensorWrapper(lm_sensor, nvml),
@@ -125,19 +121,20 @@ impl Linux {
 
         for chip in sensors.chip_iter(None) {
             if chip.to_string().contains("coretemp") {
-                state = Some(State::TEMP);
+                state = Some(State::Temp);
             // } else if chip.to_string().contains("BAT") {
             //     state = Some(State::BAT);
             } else {
+                #[allow(clippy::collapsible_if)] // to fuck clippy
                 if let Some(feature) = chip.feature_iter().next() {
                     if feature.to_string().contains("fan") {
-                        state = Some(State::FAN);
+                        state = Some(State::Fan);
                     }
                 }
             }
 
             match state {
-                Some(State::TEMP) => {
+                Some(State::Temp) => {
                     'outer: for feature in chip.feature_iter() {
                         if feature.to_string().contains("Package") {
                             for sub in feature.sub_feature_iter() {
@@ -154,7 +151,7 @@ impl Linux {
                         }
                     }
                 }
-                Some(State::FAN) => {
+                Some(State::Fan) => {
                     let fan_types = [
                         ("cpu", "fan_rpm_cpu"),
                         ("gpu", "fan_rpm_gpu"),
@@ -175,7 +172,7 @@ impl Linux {
                         }
                     }
                 }
-                Some(State::BAT) => {
+                // Some(State::Bat) => {
                     //     let mut current: f64 = -1.0;
                     //     let mut voltage: f64 = -1.0;
                     //     for feature in chip.feature_iter() {
@@ -196,7 +193,7 @@ impl Linux {
                     //             insert_data!(map, "bat_rate", current * voltage);
                     //         }
                     //     }
-                }
+                // }
                 None => {}
             }
         }

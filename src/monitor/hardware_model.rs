@@ -28,6 +28,7 @@ impl Battery {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone)]
 pub struct CPU {
     pub name: String,             // name of the CPU
@@ -42,6 +43,7 @@ pub struct CPU {
     pub voltage: f64,             // cpu voltage
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone)]
 pub struct GPU {
     pub name: String,
@@ -55,6 +57,7 @@ pub struct GPU {
     pub mem_usage: f64,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone)]
 pub struct RAM {
     pub used_size: f64,

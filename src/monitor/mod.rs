@@ -17,6 +17,7 @@ use std::thread;
 use std::time::Duration;
 use tracing::instrument;
 
+#[cfg(feature = "fake-sensors")]
 mod fake;
 mod general;
 
