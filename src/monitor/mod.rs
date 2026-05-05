@@ -22,7 +22,11 @@ mod general;
 
 #[deprecated]
 mod hardware_model;
+
+#[cfg(target_os = "linux")]
 mod linux;
+
+#[cfg(windows)]
 mod windows;
 
 pub type InfoMap = HashMap<String, DataContainer>;

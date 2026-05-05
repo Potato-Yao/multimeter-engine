@@ -1,3 +1,4 @@
+#[cfg(feature = "stress-test")]
 use crate::external_program::stress_test_manager::TestKind;
 use anyhow::{Result, anyhow};
 use std::ffi::OsStr;

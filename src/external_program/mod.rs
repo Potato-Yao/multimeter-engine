@@ -1,6 +1,6 @@
-mod interact_executor;
 pub mod program;
 
+#[cfg(windows)]
 pub mod lhm_helper;
 
 #[cfg(feature = "stress-test")]
