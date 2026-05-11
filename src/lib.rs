@@ -4,6 +4,9 @@ pub mod thread_manager;
 pub mod util;
 pub mod web;
 
+#[cfg(feature = "stress-test")]
+pub mod stress_test;
+
 use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
 use log::debug;

@@ -59,6 +59,12 @@ impl From<Vec<String>> for DataContainer {
     }
 }
 
+impl From<Vec<i32>> for DataContainer {
+    fn from(value: Vec<i32>) -> Self {
+        DataContainer::Array(value.into_iter().map(DataContainer::from).collect())
+    }
+}
+
 impl From<DataContainer> for String {
     fn from(value: DataContainer) -> Self {
         match value {

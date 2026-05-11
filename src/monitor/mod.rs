@@ -21,7 +21,6 @@ use tracing::instrument;
 mod fake;
 mod general;
 
-#[deprecated]
 mod hardware_model;
 
 #[cfg(target_os = "linux")]
@@ -29,6 +28,7 @@ mod linux;
 
 #[cfg(windows)]
 mod windows;
+mod hardware_manager;
 
 pub type InfoMap = HashMap<String, DataContainer>;
 

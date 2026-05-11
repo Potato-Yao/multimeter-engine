@@ -1,91 +1,108 @@
-#![allow(dead_code)]
-pub trait HardwareItem {}
+// #![allow(dead_code)]
+
+#[derive(Default, Debug, Clone)]
+pub struct Device {
+    pub battery: Battery,
+    pub cpu: CPU,
+    pub gpu: GPU,
+    pub ram: RAM,
+    pub fans: Fans,
+    pub motherboard: Motherboard,
+    pub disk: Disk,
+    pub network: Network,
+}
 
 #[derive(Default, Debug, Clone)]
 pub struct Battery {
-    pub designed_capacity: f64, // the maximum capacity the battery should have
-    pub actually_capacity: f64, // the maximum capacity the battery actually has
-    pub remain_capacity: f64,   // the current remaining capacity
-    pub voltage: f64,           // the voltage battery supplies
-    pub current: f64,           // the current battery supplies
-    pub rate: f64,              // charge or discharge power
-    pub is_charging: bool,      // charging state
+    pub designed_capacity: Option<f64>, // the maximum capacity the battery should have
+    pub actually_capacity: Option<f64>, // the maximum capacity the battery actually has
+    pub remain_capacity: Option<f64>,   // the current remaining capacity
+    pub voltage: Option<f64>,           // the voltage battery supplies
+    pub current: Option<f64>,           // the current battery supplies
+    pub rate: Option<f64>,              // charge or discharge power
+    pub is_charging: Option<bool>,      // charging state
 }
 
 impl Battery {
-    pub fn get_health_percentage(&self) -> f64 {
-        if self.designed_capacity == 0.0 {
-            return 0.0;
+    pub fn get_health_percentage(&self) -> Option<f64> {
+        let designed_capacity = self.designed_capacity?;
+        let actually_capacity = self.actually_capacity?;
+        if designed_capacity == 0.0 {
+            return None;
         }
-        self.actually_capacity / self.designed_capacity
+        Some(actually_capacity / designed_capacity)
     }
 
-    pub fn get_remain_percentage(&self) -> f64 {
-        if self.actually_capacity == 0.0 {
-            return 0.0;
+    pub fn get_remain_percentage(&self) -> Option<f64> {
+        let remain_capacity = self.remain_capacity?;
+        let actually_capacity = self.actually_capacity?;
+        if actually_capacity == 0.0 {
+            return None;
         }
-        (self.remain_capacity / self.actually_capacity) * 100.0
+        Some((remain_capacity / actually_capacity) * 100.0)
     }
 }
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone)]
 pub struct CPU {
-    pub name: String,             // name of the CPU
-    pub usage: f64,               // cpu usage
-    pub package_temperature: f64, // package temperature
-    pub average_temperature: f64, // average core temperature
-    pub power: f64,               // power consumption
-    pub clock_begin_index: i32,   // sensor index start
-    pub clock_end_index: i32,     // sensor index end
-    pub clock: f64,               // calculated clock speed
-    pub load: f64,                // cpu load
-    pub voltage: f64,             // cpu voltage
+    pub name: Option<String>,             // name of the CPU
+    pub usage: Option<f64>,               // cpu usage
+    pub package_temperature: Option<f64>, // package temperature
+    pub average_temperature: Option<f64>, // average core temperature
+    pub power: Option<f64>,               // power consumption
+    pub clock_begin_index: Option<i32>,   // sensor index start
+    pub clock_end_index: Option<i32>,     // sensor index end
+    pub clock: Option<f64>,               // calculated clock speed
+    pub load: Option<f64>,                // cpu load
+    pub voltage: Option<f64>,             // cpu voltage
 }
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone)]
 pub struct GPU {
-    pub name: String,
-    pub temperature: f64,
-    pub max_temperature: f64,
-    pub power: f64,
-    pub speed: f64,
-    pub mem_total: f64,
-    pub mem_free: f64,
-    pub mem_used: f64,
-    pub mem_usage: f64,
+    pub name: Option<String>,
+    pub temperature: Option<f64>,
+    pub max_temperature: Option<f64>,
+    pub power: Option<f64>,
+    pub speed: Option<f64>,
+    pub mem_total: Option<f64>,
+    pub mem_free: Option<f64>,
+    pub mem_used: Option<f64>,
+    pub mem_usage: Option<f64>,
 }
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Default, Debug, Clone)]
 pub struct RAM {
-    pub used_size: f64,
-    pub free_size: f64,
+    // the reason used, free and total all here, even total can be calculated by the other two is some api gives a total, which is more accuracy than the sum of free and used
+    pub used_size: Option<f64>,
+    pub free_size: Option<f64>,
+    pub total_size: Option<f64>,
+    pub total_swap: Option<f64>,
+    pub used_swap: Option<f64>,
+    pub free_swap: Option<f64>,
 }
 
 impl RAM {
-    pub fn get_total_size(&self) -> f64 {
-        self.used_size + self.free_size
-    }
-
-    pub fn get_used_percentage(&self) -> f64 {
-        let total = self.get_total_size();
-        if total == 0.0 {
-            return 0.0;
+    pub fn get_memory_used_percentage(&self) -> Option<f64> {
+        let used_size = self.used_size?;
+        let total_size = self.total_size?;
+        if total_size == 0.0 {
+            return None;
         }
-        (self.used_size / total) * 100.0
+        Some((used_size / total_size) * 100.0)
     }
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct Fan {
-    pub fan_speed: i32,
+pub struct Fans {
+    pub fan_speed: Option<Vec<i32>>,
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct Motherboard {
-    pub name: String,
+    pub name: Option<String>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -93,12 +110,3 @@ pub struct Disk;
 
 #[derive(Default, Debug, Clone)]
 pub struct Network;
-
-impl HardwareItem for Battery {}
-impl HardwareItem for CPU {}
-impl HardwareItem for GPU {}
-impl HardwareItem for RAM {}
-impl HardwareItem for Fan {}
-impl HardwareItem for Motherboard {}
-impl HardwareItem for Disk {}
-impl HardwareItem for Network {}
