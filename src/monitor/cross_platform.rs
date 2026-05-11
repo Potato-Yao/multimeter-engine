@@ -1,13 +1,11 @@
-use crate::insert_data;
 use crate::monitor::Updater;
-use crate::util::data_container::DataContainer;
+use crate::monitor::hardware_model::Device;
 use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use sysinfo::{Disks, System};
+use sysinfo::System;
 
-struct BatteryWrapper(Manager, Battery);
+struct BatteryWrapper(Manager, Option<Battery>);
 
 unsafe impl Send for BatteryWrapper {}
 unsafe impl Sync for BatteryWrapper {}
@@ -16,95 +14,70 @@ struct SysinfoWrapper(System);
 unsafe impl Send for SysinfoWrapper {}
 unsafe impl Sync for SysinfoWrapper {}
 
-pub struct General {
+pub struct CrossPlatform {
     battery: BatteryWrapper,
     system: SysinfoWrapper,
 }
 
-impl Updater for General {
-    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        self.battery.0.refresh(&mut self.battery.1)?;
-
-        let sys = &self.system.0;
-        let bat = &mut self.battery.1;
-        let cpu = &sys.cpus()[0];
-
-        insert_data!(map, "mem_total", byte_to_gb(sys.total_memory()));
-        insert_data!(map, "mem_swap_total", byte_to_gb(sys.total_swap()));
-        insert_data!(
-            map,
-            "bat_capacity_designed",
-            joules_to_watt_hours(bat.energy_full_design().value as f64)
-        );
-        insert_data!(
-            map,
-            "bat_capacity_max",
-            joules_to_watt_hours(bat.energy_full().value as f64)
-        );
-        if let Some(count) = bat.cycle_count() {
-            insert_data!(map, "bat_count", count as i32);
-        }
-        if let Some(val) = System::name() {
-            insert_data!(map, "os_name", val);
-        }
-        if let Some(val) = System::kernel_version() {
-            insert_data!(map, "os_kernel_version", val);
-        }
-        if let Some(val) = System::os_version() {
-            insert_data!(map, "os_version", val);
-        }
-        if let Some(val) = System::host_name() {
-            insert_data!(map, "os_host_name", val);
-        }
-        insert_data!(map, "cpu_name", cpu.name());
-
-        Ok(())
-    }
-
-    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        let disks = Disks::new_with_refreshed_list()
-            .iter()
-            .map(|e| serde_json::to_string(e).unwrap())
-            .collect::<Vec<_>>();
-        insert_data!(map, "disk_disk", disks);
-
-        Ok(())
-    }
-
-    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        self.battery.0.refresh(&mut self.battery.1)?;
+impl Updater for CrossPlatform {
+    fn update_once(&mut self, device: &mut Device) -> Result<()> {
         self.system.0.refresh_memory();
         self.system.0.refresh_cpu_all();
 
-        let bat = &mut self.battery.1;
         let sys = &self.system.0;
-        let cpu = &sys.cpus()[0];
 
-        insert_data!(
-            map,
-            "bat_capacity_remain",
-            joules_to_watt_hours(bat.energy().value as f64)
-        );
-        insert_data!(map, "bat_rate", bat.energy_rate().value as f64);
-        insert_data!(map, "bat_voltage", bat.voltage().value as f64);
-        insert_data!(
-            map,
-            "bat_state",
-            match bat.state() {
-                State::Charging | State::Full | State::LimitedFull => true,
-                State::Discharging | State::Unknown | State::Empty => false,
-            }
-        );
-        insert_data!(map, "mem_used", byte_to_gb(sys.used_memory()));
-        insert_data!(map, "mem_swap_used", byte_to_gb(sys.used_swap()));
-        insert_data!(map, "mem_available", byte_to_gb(sys.available_memory()));
-        insert_data!(
-            map,
-            "mem_percentage",
-            sys.used_memory() as f64 / sys.total_memory() as f64
-        );
-        insert_data!(map, "cpu_clock_rms", cpu.frequency());
-        insert_data!(map, "cpu_usage", sys.global_cpu_usage() as f64);
+        device.ram.total_size = Some(byte_to_gb(sys.total_memory()));
+        device.ram.total_swap = Some(byte_to_gb(sys.total_swap()));
+        device.system.os_name = System::name();
+        device.system.kernel_version = System::kernel_version();
+        device.system.os_version = System::os_version();
+        device.system.host_name = System::host_name();
+
+        if let Some(cpu) = sys.cpus().first() {
+            device.cpu.name = Some(cpu.name().to_string());
+        }
+
+        if let Some(bat) = self.battery.1.as_mut() {
+            self.battery.0.refresh(bat)?;
+            device.battery.designed_capacity =
+                Some(joules_to_watt_hours(bat.energy_full_design().value as f64));
+            device.battery.actually_capacity =
+                Some(joules_to_watt_hours(bat.energy_full().value as f64));
+        }
+
+        Ok(())
+    }
+
+    fn update_slow(&mut self, _device: &mut Device) -> Result<()> {
+        Ok(())
+    }
+
+    fn update(&mut self, device: &mut Device) -> Result<()> {
+        self.system.0.refresh_memory();
+        self.system.0.refresh_cpu_all();
+
+        let sys = &self.system.0;
+
+        device.ram.used_size = Some(byte_to_gb(sys.used_memory()));
+        device.ram.used_swap = Some(byte_to_gb(sys.used_swap()));
+        device.ram.free_size = Some(byte_to_gb(sys.available_memory()));
+        device.ram.free_swap = Some(byte_to_gb(sys.total_swap().saturating_sub(sys.used_swap())));
+
+        if let Some(cpu) = sys.cpus().first() {
+            device.cpu.clock = Some(cpu.frequency() as f64);
+        }
+        device.cpu.usage = Some(sys.global_cpu_usage() as f64);
+
+        if let Some(bat) = self.battery.1.as_mut() {
+            self.battery.0.refresh(bat)?;
+            device.battery.remain_capacity = Some(joules_to_watt_hours(bat.energy().value as f64));
+            device.battery.rate = Some(bat.energy_rate().value as f64);
+            device.battery.voltage = Some(bat.voltage().value as f64);
+            device.battery.is_charging = Some(matches!(
+                bat.state(),
+                State::Charging | State::Full | State::LimitedFull
+            ));
+        }
 
         Ok(())
     }
@@ -122,14 +95,10 @@ fn byte_to_gb(value: u64) -> f64 {
     (value as f64) / 1024.0 / 1024.0 / 1024.0
 }
 
-impl General {
+impl CrossPlatform {
     pub fn build() -> Result<Arc<Mutex<Self>>> {
         let manager = Manager::new()?;
-        let bat = manager
-            .batteries()?
-            .next()
-            .transpose()?
-            .ok_or_else(|| anyhow::anyhow!("No battery found"))?;
+        let bat = manager.batteries()?.next().transpose()?;
         let sysinfo = System::new_all();
 
         Ok(Arc::new(Mutex::new(Self {

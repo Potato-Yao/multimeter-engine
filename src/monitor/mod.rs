@@ -1,7 +1,8 @@
 use crate::get_running_flag;
 #[cfg(feature = "fake-sensors")]
 use crate::monitor::fake::Fake;
-use crate::monitor::general::General;
+use crate::monitor::cross_platform::CrossPlatform;
+use crate::monitor::hardware_model::Device;
 #[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
 use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
@@ -19,7 +20,7 @@ use tracing::instrument;
 
 #[cfg(feature = "fake-sensors")]
 mod fake;
-mod general;
+mod cross_platform;
 
 mod hardware_model;
 
@@ -28,7 +29,6 @@ mod linux;
 
 #[cfg(windows)]
 mod windows;
-mod hardware_manager;
 
 pub type InfoMap = HashMap<String, DataContainer>;
 
@@ -49,16 +49,17 @@ macro_rules! insert_data {
 }
 
 trait Updater: Send + Sync {
-    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
+    fn update_once(&mut self, device: &mut Device) -> Result<()>;
 
-    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
+    fn update_slow(&mut self, device: &mut Device) -> Result<()>;
 
-    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()>;
+    fn update(&mut self, device: &mut Device) -> Result<()>;
 
     fn shutdown(&mut self) -> Result<()>;
 }
 
 static QUERY_MANAGER: OnceLock<Arc<Mutex<dyn Updater>>> = OnceLock::new();
+
 static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLock::new(|| {
     let mut m: HashMap<&str, Option<DataContainer>> = HashMap::new();
     QUERY_STATEMENTS.iter().for_each(|e| {
@@ -67,6 +68,8 @@ static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLoc
 
     Mutex::new(m)
 });
+
+static DEVICE: LazyLock<Arc<Mutex<Device>>> = LazyLock::new(|| Arc::new(Mutex::new(Device::default())));
 
 #[instrument]
 pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
@@ -121,7 +124,7 @@ pub fn init() -> Result<()> {
     #[cfg(feature = "fake-sensors")]
     let manager = Fake::build()?;
 
-    let general_manager = General::build()?;
+    let general_manager = CrossPlatform::build()?;
 
     let _ = QUERY_MANAGER.set(manager.clone());
     let _ = QUERY_MANAGER.set(general_manager.clone());
@@ -130,23 +133,24 @@ pub fn init() -> Result<()> {
         let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut general_mgr = general_manager.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
-        if let Err(e) = mgr.update_once(&mut map) {
+        let mut device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
+        if let Err(e) = mgr.update_once(&mut device) {
             error!("Update failed: {}", e);
         }
-        if let Err(e) = mgr.update_slow(&mut map) {
+        if let Err(e) = mgr.update_slow(&mut device) {
             error!("Update failed: {}", e);
         }
-        if let Err(e) = mgr.update(&mut map) {
+        if let Err(e) = mgr.update(&mut device) {
             error!("Update failed: {}", e);
         }
 
-        if let Err(e) = general_mgr.update_once(&mut map) {
+        if let Err(e) = general_mgr.update_once(&mut device) {
             error!("Update failed: {}", e);
         }
-        if let Err(e) = general_mgr.update_slow(&mut map) {
+        if let Err(e) = general_mgr.update_slow(&mut device) {
             error!("Update failed: {}", e);
         }
-        if let Err(e) = general_mgr.update(&mut map) {
+        if let Err(e) = general_mgr.update(&mut device) {
             error!("Update failed: {}", e);
         }
     }
@@ -159,10 +163,11 @@ pub fn init() -> Result<()> {
                 let mut mgr = manager_normal.lock().unwrap();
                 let mut general_mgr = general_manager_normal.lock().unwrap();
                 let mut map = INFO_MAP.lock().unwrap();
-                if let Err(e) = mgr.update(&mut map) {
+                let mut device = DEVICE.lock().unwrap();
+                if let Err(e) = mgr.update(&mut device) {
                     error!("Update failed: {}", e);
                 }
-                if let Err(e) = general_mgr.update(&mut map) {
+                if let Err(e) = general_mgr.update(&mut device) {
                     error!("General update failed: {}", e);
                 }
             }
@@ -178,10 +183,11 @@ pub fn init() -> Result<()> {
                 let mut mgr = manager_slow.lock().unwrap();
                 let mut general_mgr = general_manager_slow.lock().unwrap();
                 let mut map = INFO_MAP.lock().unwrap();
-                if let Err(e) = mgr.update_slow(&mut map) {
+                let mut device = DEVICE.lock().unwrap();
+                if let Err(e) = mgr.update_slow(&mut device) {
                     error!("Update failed: {}", e);
                 }
-                if let Err(e) = general_mgr.update_slow(&mut map) {
+                if let Err(e) = general_mgr.update_slow(&mut device) {
                     error!("Update failed: {}", e);
                 }
             }

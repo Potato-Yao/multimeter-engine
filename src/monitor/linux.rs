@@ -1,11 +1,9 @@
-use crate::insert_data;
+use crate::monitor::hardware_model::Device;
 use crate::monitor::Updater;
-use crate::util::data_container::DataContainer;
 use anyhow::Result;
 use lm_sensors::LMSensors;
-use nvml_wrapper::Nvml;
 use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
-use std::collections::HashMap;
+use nvml_wrapper::Nvml;
 use std::fs::read_to_string;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -28,7 +26,8 @@ impl PowerCalculator {
     fn calculate(&mut self) -> Result<f64> {
         let now_energy = Self::read_energy_consume()?;
         let now = Instant::now();
-        let power = (now_energy - self.1) as f64 / now.duration_since(self.0).as_secs_f64() / 1_000_000.0; // power = work / time, converted to watt
+        let power =
+            (now_energy - self.1) as f64 / now.duration_since(self.0).as_secs_f64() / 1_000_000.0; // power = work / time, converted to watt
         self.0 = now;
         self.1 = now_energy;
 
@@ -55,20 +54,20 @@ pub struct Linux {
 
 #[cfg(target_os = "linux")]
 impl Updater for Linux {
-    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        insert_data!(map, "os_activated", true); // Linux is free os
+    fn update_once(&mut self, device: &mut Device) -> Result<()> {
+        device.system.is_activated = Some(true);
 
         Ok(())
     }
 
-    fn update_slow(&mut self, _map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn update_slow(&mut self, _device: &mut Device) -> Result<()> {
         Ok(())
     }
 
-    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        self.set_libsensor_info(map)?;
-        self.set_nvml_info(map)?;
-        self.set_cpu_power(map)?;
+    fn update(&mut self, device: &mut Device) -> Result<()> {
+        self.set_libsensor_info(device)?;
+        self.set_nvml_info(device)?;
+        self.set_cpu_power(device)?;
 
         Ok(())
     }
@@ -90,32 +89,20 @@ impl Linux {
         })))
     }
 
-    fn set_nvml_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn set_nvml_info(&mut self, device: &mut Device) -> Result<()> {
         if let Some(sensor) = &self.sensor.1 {
-            let device = sensor.device_by_index(0)?;
-            insert_data!(map, "gpu_name", device.name()?);
-            insert_data!(map, "gpu_power", device.power_usage()? as f64 / 1000.0);
-            insert_data!(
-                map,
-                "gpu_temperature",
-                device.temperature(TemperatureSensor::Gpu)? as i32
-            );
-            insert_data!(
-                map,
-                "gpu_clock_rms",
-                device.clock_info(Clock::Graphics)? as i32
-            );
-            insert_data!(
-                map,
-                "gpu_mem_clock_rms",
-                device.clock_info(Clock::Memory)? as i32
-            );
+            let gpu = sensor.device_by_index(0)?;
+            device.gpu.name = Some(gpu.name()?);
+            device.gpu.power_usage = Some(gpu.power_usage()? as f64 / 1000.0);
+            device.gpu.temperature = Some(gpu.temperature(TemperatureSensor::Gpu)? as f64);
+            device.gpu.clock = Some(gpu.clock_info(Clock::Graphics)? as i32);
+            device.gpu.mem_clock = Some(gpu.clock_info(Clock::Memory)? as i32);
         }
 
         Ok(())
     }
 
-    fn set_libsensor_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn set_libsensor_info(&mut self, device: &mut Device) -> Result<()> {
         let sensors = &self.sensor.0;
         let mut state: Option<State> = None;
 
@@ -140,11 +127,8 @@ impl Linux {
                             for sub in feature.sub_feature_iter() {
                                 if sub.to_string().contains("input") {
                                     let value = sub.value()?.to_string();
-                                    insert_data!(
-                                        map,
-                                        "cpu_temperature",
-                                        remove_unit(&value).parse::<i32>()?
-                                    );
+                                    device.cpu.package_temperature =
+                                        Some(remove_unit(&value).parse()?);
                                     break 'outer;
                                 }
                             }
@@ -152,57 +136,42 @@ impl Linux {
                     }
                 }
                 Some(State::Fan) => {
-                    let fan_types = [
-                        ("cpu", "fan_rpm_cpu"),
-                        ("gpu", "fan_rpm_gpu"),
-                        ("mid", "fan_rpm_mid"),
-                    ];
                     for feature in chip.feature_iter() {
                         let feature_name = feature.to_string();
-                        for &(pattern, key) in &fan_types {
-                            if feature_name.contains(pattern) {
-                                for sub in feature.sub_feature_iter() {
-                                    if sub.to_string().contains("input") {
-                                        let value = sub.value()?.to_string();
-                                        insert_data!(map, key, remove_unit(&value).parse::<i32>()?);
-                                        break;
+                        let feature_name = feature_name.as_str();
+
+                        if feature_name.contains("fan") {
+                            for sub in feature.sub_feature_iter() {
+                                if sub.to_string().contains("input") {
+                                    let value = sub.value()?.to_string();
+                                    let value = remove_unit(&value).parse::<i32>()?;
+
+                                    match feature_name {
+                                        "cpu_fan" => {
+                                            device.fans.cpu_speed = Some(value);
+                                        }
+                                        "gpu_fan" => {
+                                            device.fans.gpu_speed = Some(value);
+                                        }
+                                        "mid_fan" => {
+                                            device.fans.mid_speed = Some(value);
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
                         }
                     }
                 }
-                // Some(State::Bat) => {
-                    //     let mut current: f64 = -1.0;
-                    //     let mut voltage: f64 = -1.0;
-                    //     for feature in chip.feature_iter() {
-                    //         if feature.to_string().contains("in") {
-                    //             if let Some(sub) = feature.sub_feature_iter().next() {
-                    //                 voltage = remove_unit(&sub.value()?.to_string()).parse()?;
-                    //             }
-                    //         } else if feature.to_string().contains("curr") {
-                    //             if let Some(sub) = feature.sub_feature_iter().next() {
-                    //                 current = remove_unit(&sub.value()?.to_string()).parse()?;
-                    //             }
-                    //         }
-                    //     }
-                    //     if voltage != -1.0 {
-                    //         insert_data!(map, "bat_voltage", voltage);
-                    //
-                    //         if current != -1.0 {
-                    //             insert_data!(map, "bat_rate", current * voltage);
-                    //         }
-                    //     }
-                // }
                 None => {}
             }
         }
         Ok(())
     }
 
-    fn set_cpu_power(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn set_cpu_power(&mut self, device: &mut Device) -> Result<()> {
         let power = self.power_calculator.calculate()?;
-        insert_data!(map, "cpu_power", power);
+        device.cpu.usage = Some(power);
 
         Ok(())
     }
@@ -215,8 +184,8 @@ fn remove_unit(string: &str) -> &str {
 #[cfg(all(target_os = "linux", test))]
 mod tests {
     use crate::monitor::linux::remove_unit;
-    use nvml_wrapper::Nvml;
     use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
+    use nvml_wrapper::Nvml;
 
     #[test]
     fn test_libsensor() {

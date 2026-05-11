@@ -2,6 +2,7 @@
 
 #[derive(Default, Debug, Clone)]
 pub struct Device {
+    pub system: System,
     pub battery: Battery,
     pub cpu: CPU,
     pub gpu: GPU,
@@ -10,6 +11,15 @@ pub struct Device {
     pub motherboard: Motherboard,
     pub disk: Disk,
     pub network: Network,
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct System {
+    pub os_name: Option<String>,
+    pub os_version: Option<String>,
+    pub kernel_version: Option<String>,
+    pub host_name: Option<String>,
+    pub is_activated: Option<bool>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -62,10 +72,13 @@ pub struct CPU {
 #[derive(Default, Debug, Clone)]
 pub struct GPU {
     pub name: Option<String>,
+    pub power_usage: Option<f64>,
     pub temperature: Option<f64>,
+    pub clock: Option<i32>,
     pub max_temperature: Option<f64>,
     pub power: Option<f64>,
     pub speed: Option<f64>,
+    pub mem_clock: Option<i32>,
     pub mem_total: Option<f64>,
     pub mem_free: Option<f64>,
     pub mem_used: Option<f64>,
@@ -97,7 +110,9 @@ impl RAM {
 
 #[derive(Default, Debug, Clone)]
 pub struct Fans {
-    pub fan_speed: Option<Vec<i32>>,
+    pub cpu_speed: Option<i32>,
+    pub gpu_speed: Option<i32>,
+    pub mid_speed: Option<i32>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -106,7 +121,9 @@ pub struct Motherboard {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct Disk;
+pub struct Disk {
+    disk_list: Vec<String>,
+}
 
 #[derive(Default, Debug, Clone)]
 pub struct Network;

@@ -1,16 +1,12 @@
 use crate::external_program::lhm_helper::LhmHelper;
 use crate::external_program::program::Program;
-use crate::insert_data;
+use crate::monitor::hardware_model::Device;
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
-use crate::util::data_container::DataContainer;
 use anyhow::{Result, anyhow};
 use log::{debug, trace};
-use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::env;
-use std::fs::read_to_string;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -36,31 +32,72 @@ struct WindowsPayload {
 }
 
 impl Updater for Windows {
-    fn update_once(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        self.set_activation_state(map);
+    fn update_once(&mut self, device: &mut Device) -> Result<()> {
+        self.set_activation_state(device)?;
 
         Ok(())
     }
 
-    fn update_slow(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
-        self.set_disk_info(map);
+    fn update_slow(&mut self, device: &mut Device) -> Result<()> {
+        self.set_disk_info(device)?;
 
         Ok(())
     }
 
-    fn update(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn update(&mut self, device: &mut Device) -> Result<()> {
         self.lhm_helper.update()?;
-        for (k, v) in map.iter_mut() {
-            if let Some(index) = self.index_map.get(*k)
-                && *index != -1
-            {
-                let value = self.query_sensor_value(*index).map_err(|e| anyhow!(e))?;
-                *v = Some(DataContainer::from(value));
-            }
+
+        if let Some(value) = self.query_optional_sensor_value("bat_capacity_designed")? {
+            device.battery.designed_capacity = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("bat_capacity_max")? {
+            device.battery.actually_capacity = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("bat_capacity_remain")? {
+            device.battery.remain_capacity = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("bat_voltage")? {
+            device.battery.voltage = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("bat_rate")? {
+            device.battery.rate = Some(value);
         }
 
-        self.set_battery_state(map);
-        self.set_cpu_clock(map)?;
+        if let Some(value) = self.query_optional_sensor_value("cpu_usage")? {
+            device.cpu.usage = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("cpu_temperature")? {
+            device.cpu.package_temperature = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("cpu_power")? {
+            device.cpu.power = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("cpu_voltage")? {
+            device.cpu.voltage = Some(value);
+        }
+
+        if let Some(value) = self.query_optional_sensor_value("gpu_temperature")? {
+            device.gpu.temperature = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("gpu_power")? {
+            device.gpu.power = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("gpu_clock_rms")? {
+            device.gpu.speed = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("gpu_mem_clock_rms")? {
+            device.gpu.mem_clock = Some(value as i32);
+        }
+
+        if let Some(value) = self.query_optional_sensor_value("mem_available")? {
+            device.ram.free_size = Some(value);
+        }
+        if let Some(value) = self.query_optional_sensor_value("mem_used")? {
+            device.ram.used_size = Some(value);
+        }
+
+        self.set_battery_state(device);
+        self.set_cpu_clock(device)?;
 
         Ok(())
     }
@@ -212,30 +249,34 @@ impl Windows {
         Ok(value)
     }
 
-    fn set_battery_state(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) {
-        let capacity = match map.get("bat_capacity_remain").and_then(|v| v.as_ref()) {
-            Some(DataContainer::Float(v)) => Some(*v),
-            _ => None,
-        };
-        let rate = match map.get("bat_rate").and_then(|v| v.as_ref()) {
-            Some(DataContainer::Float(v)) => Some(*v),
-            _ => None,
-        };
+    fn query_optional_sensor_value(&mut self, key: &str) -> Result<Option<f64>> {
+        if let Some(index) = self.index_map.get(key)
+            && *index != -1
+        {
+            return Ok(Some(self.query_sensor_value(*index).map_err(|e| anyhow!(e))?));
+        }
+
+        Ok(None)
+    }
+
+    fn set_battery_state(&mut self, device: &mut Device) {
+        let capacity = device.battery.remain_capacity;
+        let rate = device.battery.rate;
 
         if let (Some(capacity), Some(rate)) = (capacity, rate) {
             let prev_capacity = self.payload.prev_bat_capacity;
 
             if prev_capacity < capacity || rate == 0.0 {
-                insert_data!(map, "bat_state", true);
+                device.battery.is_charging = Some(true);
             } else if prev_capacity > capacity {
-                insert_data!(map, "bat_state", false);
+                device.battery.is_charging = Some(false);
             };
 
             self.payload.prev_bat_capacity = capacity;
         }
     }
 
-    fn set_cpu_clock(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn set_cpu_clock(&mut self, device: &mut Device) -> Result<()> {
         let clock_begin = *self.index_map.get("cpu_clock_first").unwrap();
         let clock_end = *self.index_map.get("cpu_clock_last").unwrap();
 
@@ -246,59 +287,28 @@ impl Windows {
                 clocks.push(value);
             }
             let clock_avg = clocks.iter().sum::<f64>() / clocks.len() as f64;
-            map.insert(
-                "cpu_clock_avg",
-                if !clocks.is_empty() {
-                    Some(DataContainer::Float(clock_avg))
+
+            if clocks.len() > 3 {
+                clocks.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                clocks.reverse();
+                let rms;
+                if clocks[0] - clocks[1] > 500.0 {
+                    rms = (clocks[0] * 0.3 + clocks[1] * 0.4 + clocks[2] * 0.2 + clocks[3] * 0.1)
+                        / 1000.0;
                 } else {
-                    None
-                },
-            );
-            map.insert(
-                "cpu_clock_max",
-                if !clocks.is_empty() {
-                    Some(DataContainer::Float(
-                        *clocks
-                            .iter()
-                            .max_by(|a, b| a.partial_cmp(b).unwrap())
-                            .unwrap(),
-                    ))
-                } else {
-                    None
-                },
-            );
-            map.insert(
-                "cpu_clock_rms",
-                if clocks.len() > 3 {
-                    clocks.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                    clocks.reverse();
-                    let rms;
-                    if clocks[0] - clocks[1] > 500.0 {
-                        rms =
-                            (clocks[0] * 0.3 + clocks[1] * 0.4 + clocks[2] * 0.2 + clocks[3] * 0.1)
-                                / 1000.0;
-                    } else {
-                        rms = (clocks[0] * 0.35
-                            + clocks[1] * 0.35
-                            + clocks[2] * 0.2
-                            + clocks[3] * 0.1)
+                    rms =
+                        (clocks[0] * 0.35 + clocks[1] * 0.35 + clocks[2] * 0.2 + clocks[3] * 0.1)
                             / 1000.0;
-                    }
-                    Some(DataContainer::Float(rms))
-                } else if clocks.is_empty() {
-                    None
-                } else {
-                    Some(DataContainer::Float(clock_avg))
-                },
-            );
+                }
+                device.cpu.clock = Some(rms);
+            } else if !clocks.is_empty() {
+                device.cpu.clock = Some(clock_avg);
+            }
         }
         Ok(())
     }
 
-    fn set_activation_state(
-        &mut self,
-        map: &mut HashMap<&str, Option<DataContainer>>,
-    ) -> Result<()> {
+    fn set_activation_state(&mut self, device: &mut Device) -> Result<()> {
         let mut slmgr = Program::new_command(
             "cscript",
             Some(vec![vec![
@@ -313,15 +323,15 @@ impl Windows {
         if slmgr.read()?.contains("permanently activated")
             || slmgr.read()?.contains("计算机已永久激活")
         {
-            insert_data!(map, "os_activated", true);
+            device.system.is_activated = Some(true);
         } else {
-            insert_data!(map, "os_activated", false);
+            device.system.is_activated = Some(false);
         }
 
         Ok(())
     }
 
-    fn set_disk_info(&mut self, map: &mut HashMap<&str, Option<DataContainer>>) -> Result<()> {
+    fn set_disk_info(&mut self, _device: &mut Device) -> Result<()> {
         let mut diskpart = Program::new_command("diskpart", None);
 
         diskpart.start(None)?;
