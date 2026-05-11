@@ -1,9 +1,15 @@
+#[cfg(feature = "web-api")]
 use futures::{SinkExt, StreamExt};
 use log::{debug, info};
-use multimeter_engine::{engine_init, web};
+use multimeter_engine::engine_init;
+#[cfg(feature = "web-api")]
+use multimeter_engine::web;
+#[cfg(feature = "web-api")]
 use tokio::net::{TcpListener, TcpStream};
+#[cfg(feature = "web-api")]
 use tokio_util::codec::{Framed, LinesCodec};
 
+#[cfg(feature = "web-api")]
 fn parse_port_from_args() -> Result<u16, String> {
     let mut args = std::env::args().skip(1);
 
@@ -24,6 +30,7 @@ fn parse_port_from_args() -> Result<u16, String> {
     Ok(8080)
 }
 
+#[cfg(feature = "web-api")]
 fn handle_request(socket: TcpStream) {
     tokio::spawn(async move {
         let mut framed = Framed::new(socket, LinesCodec::new());
@@ -46,6 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(debug_assertions))]
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
+    #[cfg(feature = "web-api")]
     let port = match parse_port_from_args() {
         Ok(p) => p,
         Err(msg) => {
@@ -58,14 +66,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("Initializing monitor");
     engine_init()?;
 
-    let listener = TcpListener::bind(("127.0.0.1", port)).await?;
-    info!("Server starts at {}", listener.local_addr()?);
-    println!("Server starts at {}", listener.local_addr()?);
+    #[cfg(feature = "web-api")]
+    {
+        let listener = TcpListener::bind(("127.0.0.1", port)).await?;
+        info!("Server starts at {}", listener.local_addr()?);
+        println!("Server starts at {}", listener.local_addr()?);
+        while multimeter_engine::get_running_flag() {
+            let (socket, _) = listener.accept().await?;
 
-    while multimeter_engine::get_running_flag() {
-        let (socket, _) = listener.accept().await?;
-
-        handle_request(socket);
+            crate::handle_request(socket);
+        }
     }
 
     Ok(())

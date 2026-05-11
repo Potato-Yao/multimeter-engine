@@ -4,7 +4,6 @@ use crate::web::{RequestKind, INTERNAL_ERROR_STATE};
 use crate::web::model::{Request, Response};
 use crate::web::{LATEST_VERSION, NOT_FOUND_STATE, SUCCESS_STATE};
 use log::debug;
-use crate::shutdown;
 
 pub fn execute_request(req: Request) -> Result<Response, Response> {
     debug!("Request is executing: {:?}", req);
@@ -35,7 +34,8 @@ fn handle_v1_request(req: Request) -> Result<Response, Response> {
             todo!()
         },
         RequestKind::Shutdown => {
-            shutdown()
+            // shutdown()
+            todo!()
         },
     }
     .map_err(|e| Response {

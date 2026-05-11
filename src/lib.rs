@@ -1,17 +1,20 @@
+#[cfg(feature = "web-api")]
+use crate::util::payload::PayLoad;
+use anyhow::{Result};
+use log::debug;
+#[cfg(feature = "web-api")]
+use std::ffi::{CStr, CString, c_char};
+
+use std::sync::Mutex;
 pub mod external_program;
 pub mod monitor;
 pub mod thread_manager;
 pub mod util;
+
 pub mod web;
 
 #[cfg(feature = "stress-test")]
 pub mod stress_test;
-
-use crate::util::payload::PayLoad;
-use anyhow::{Result, anyhow};
-use log::debug;
-use std::ffi::{CStr, CString, c_char};
-use std::sync::Mutex;
 
 static KEEP_RUNNING: Mutex<bool> = Mutex::new(true);
 
@@ -19,6 +22,7 @@ pub fn get_running_flag() -> bool {
     *KEEP_RUNNING.lock().unwrap()
 }
 
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 pub fn process_command(input: String) -> String {
     match web::handle_request(input) {
         Ok(response) | Err(response) => serde_json::to_string(&response).unwrap(),
@@ -32,6 +36,7 @@ pub fn engine_init() -> Result<()> {
 }
 
 #[unsafe(no_mangle)]
+#[cfg(feature = "web-api")]
 pub extern "C" fn multimeter_init() -> i32 {
     match engine_init() {
         Ok(_) => 0,
@@ -42,6 +47,7 @@ pub extern "C" fn multimeter_init() -> i32 {
 /// # Safety
 /// safe
 #[unsafe(no_mangle)]
+#[cfg(feature = "web-api")]
 pub unsafe extern "C" fn multimeter_query(input: *const c_char) -> *mut c_char {
     if input.is_null() {
         return std::ptr::null_mut();
@@ -56,6 +62,7 @@ pub unsafe extern "C" fn multimeter_query(input: *const c_char) -> *mut c_char {
 }
 
 #[unsafe(no_mangle)]
+#[cfg(feature = "web-api")]
 pub extern "C" fn multimeter_shutdown() {
     let _ = monitor::shutdown();
     if let Ok(mut flag) = KEEP_RUNNING.lock() {
@@ -63,20 +70,20 @@ pub extern "C" fn multimeter_shutdown() {
     }
 }
 
-pub fn shutdown() -> Result<PayLoad> {
+pub fn shutdown() -> Result<()> {
     debug!("Shutting down");
 
     // fixme shutdown doesnt work
-    let payload = PayLoad {
-        value: "Shutdown initiated.".into(),
-        addition: None,
-    };
+    // let payload = PayLoad {
+    //     value: "Shutdown initiated.".into(),
+    //     addition: None,
+    // };
+    //
+    // if let Err(e) = monitor::shutdown() {
+    //     return Err(anyhow!(e.to_string()));
+    // }
+    //
+    // *KEEP_RUNNING.lock().unwrap() = false;
 
-    if let Err(e) = monitor::shutdown() {
-        return Err(anyhow!(e.to_string()));
-    }
-
-    *KEEP_RUNNING.lock().unwrap() = false;
-
-    Ok(payload)
+    Ok(())
 }

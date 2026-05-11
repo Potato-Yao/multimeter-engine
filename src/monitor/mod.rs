@@ -1,28 +1,35 @@
+#[cfg(any(feature = "web-api", feature = "native-api"))]
+use std::collections::HashMap;
 use crate::get_running_flag;
 #[cfg(feature = "fake-sensors")]
 use crate::monitor::fake::Fake;
 use crate::monitor::cross_platform::CrossPlatform;
-use crate::monitor::hardware_model::Device;
 #[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
 use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
-use crate::util::data_container::DataContainer;
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 use crate::util::payload::PayLoad;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
-use log::{debug, error, trace};
-use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, Mutex, OnceLock};
+use log::{debug, error};
+#[cfg(any(feature = "web-api", feature = "native-api"))]
+use log::{trace};
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::Duration;
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 use tracing::instrument;
+#[cfg(any(feature = "web-api", feature = "native-api"))]
+use crate::util::data_container::DataContainer;
+use crate::util::info_map::InfoMap;
 
 #[cfg(feature = "fake-sensors")]
 mod fake;
 mod cross_platform;
 
 mod hardware_model;
+pub use self::hardware_model::Device;
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -30,23 +37,21 @@ mod linux;
 #[cfg(windows)]
 mod windows;
 
-pub type InfoMap = HashMap<String, DataContainer>;
-
 #[derive(Debug)]
 pub struct QueryRequest {
     pub target: String,
     pub parameter: Option<InfoMap>,
 }
 
-#[macro_export]
-macro_rules! insert_data {
-    ($map:expr, $key:expr, $val:expr) => {
-        $map.insert(
-            $key,
-            Some(DataContainer::from($val)),
-        )
-    };
-}
+// #[macro_export]
+// macro_rules! insert_data {
+//     ($map:expr, $key:expr, $val:expr) => {
+//         $map.insert(
+//             $key,
+//             Some(DataContainer::from($val)),
+//         )
+//     };
+// }
 
 trait Updater: Send + Sync {
     fn update_once(&mut self, device: &mut Device) -> Result<()>;
@@ -60,6 +65,7 @@ trait Updater: Send + Sync {
 
 static QUERY_MANAGER: OnceLock<Arc<Mutex<dyn Updater>>> = OnceLock::new();
 
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLock::new(|| {
     let mut m: HashMap<&str, Option<DataContainer>> = HashMap::new();
     QUERY_STATEMENTS.iter().for_each(|e| {
@@ -71,7 +77,12 @@ static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLoc
 
 static DEVICE: LazyLock<Arc<Mutex<Device>>> = LazyLock::new(|| Arc::new(Mutex::new(Device::default())));
 
+pub fn query_device() -> Result<MutexGuard<'static, Device>> {
+    DEVICE.lock().map_err(|e| anyhow!(e.to_string()))
+}
+
 #[instrument]
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
     debug!("Query Request: {:?}", request);
     if QUERY_MANAGER.get().is_none() {
@@ -132,6 +143,7 @@ pub fn init() -> Result<()> {
     {
         let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut general_mgr = general_manager.lock().map_err(|e| anyhow!(e.to_string()))?;
+        #[cfg(feature = "web-api")]
         let mut map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
         if let Err(e) = mgr.update_once(&mut device) {
@@ -162,6 +174,7 @@ pub fn init() -> Result<()> {
             {
                 let mut mgr = manager_normal.lock().unwrap();
                 let mut general_mgr = general_manager_normal.lock().unwrap();
+                #[cfg(feature = "web-api")]
                 let mut map = INFO_MAP.lock().unwrap();
                 let mut device = DEVICE.lock().unwrap();
                 if let Err(e) = mgr.update(&mut device) {
@@ -182,6 +195,7 @@ pub fn init() -> Result<()> {
             {
                 let mut mgr = manager_slow.lock().unwrap();
                 let mut general_mgr = general_manager_slow.lock().unwrap();
+                #[cfg(feature = "web-api")]
                 let mut map = INFO_MAP.lock().unwrap();
                 let mut device = DEVICE.lock().unwrap();
                 if let Err(e) = mgr.update_slow(&mut device) {
@@ -267,25 +281,33 @@ lazy_static! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
 
     #[test]
     fn test_query() {
-        let request = QueryRequest {
-            // target: "cpu_power".to_string(),
-            // target: "cpu_temperature".to_string(),
-            // target: "bat_rate".to_string(),
-            // target: "gpu_name".to_string(),
-            // target: "gpu_temperature".to_string(),
-            target: "bat_capacity_max".to_string(),
-            parameter: None,
-        };
-        init().unwrap();
-        let start = Utc::now();
-        let result = query_info(request);
-        let end = Utc::now();
-        println!("INFO MAP: {:?}", INFO_MAP.lock().unwrap());
-        println!("Time consumed: {} ms", (end - start).num_milliseconds());
-        assert!(result.is_ok());
+        #[cfg(feature = "web-api")]
+        {
+            use chrono::Utc;
+            let request = QueryRequest {
+                // target: "cpu_power".to_string(),
+                // target: "cpu_temperature".to_string(),
+                // target: "bat_rate".to_string(),
+                // target: "gpu_name".to_string(),
+                // target: "gpu_temperature".to_string(),
+                target: "bat_capacity_max".to_string(),
+                parameter: None,
+            };
+            crate::monitor::init().unwrap();
+            let start = Utc::now();
+            let result = query_info(request);
+            let end = Utc::now();
+            println!("INFO MAP: {:?}", INFO_MAP.lock().unwrap());
+            println!("Time consumed: {} ms", (end - start).num_milliseconds());
+            assert!(result.is_ok());
+        }
+        #[cfg(not(feature = "web-api"))]
+        {
+            init().unwrap();
+            assert!(query_device().unwrap().cpu.package_temperature.is_some());
+        }
     }
 }
