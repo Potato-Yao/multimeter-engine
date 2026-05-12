@@ -1,5 +1,3 @@
-#[cfg(feature = "web-api")]
-use crate::util::payload::PayLoad;
 use anyhow::{Result};
 use log::debug;
 #[cfg(feature = "web-api")]
@@ -11,6 +9,7 @@ pub mod monitor;
 pub mod thread_manager;
 pub mod util;
 
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 pub mod web;
 
 #[cfg(feature = "stress-test")]
