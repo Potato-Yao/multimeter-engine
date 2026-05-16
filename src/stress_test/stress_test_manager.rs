@@ -56,15 +56,13 @@ impl Program {
         if cfg!(target_os = "linux") {
             match kind {
                 TestKind::Cpu => {
-                    Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--cpu", "16"]]))
-                        .into()
+                    Some(Self::new_external_tool("stress").args(vec!["--quiet", "--cpu", "16"]))
                 }
                 TestKind::Gpu => {
-                    Self::new_external_tool("gpu_burn", None::<Vec<Vec<String>>>).into()
+                    Some(Self::new_external_tool("gpu_burn").preserve_working_dir())
                 }
                 TestKind::Ram => {
-                    Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--vm", "16"]]))
-                        .into()
+                    Some(Self::new_external_tool("stress").args(vec!["--quiet", "--vm", "16"]))
                 }
             }
         } else {

@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use std::ffi::OsStr;
 use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub struct Program {
@@ -11,11 +12,11 @@ pub struct Program {
     stdin: Option<ChildStdin>,
     stdout: Option<ChildStdout>,
     standalone: bool, // whether to kill the process when the instance is dropping
-    preserve_working_dir: bool, // whether to change the working directory to where the program is. notice the working dir will be restored when the program is closed
+    preserve_working_dir: bool, // whether to run the child process with the executable's directory as working directory
 }
 
 impl Program {
-    pub fn new<T, A, I, S, II, SS>(start_command: T, pre_args: Option<II>, args_set: Option<A>) -> Self
+    fn new<T, A, I, S, II, SS>(start_command: T, pre_args: Option<II>, args_set: Option<A>) -> Self
     where
         T: AsRef<OsStr>,
         A: IntoIterator<Item = I>,
@@ -42,12 +43,9 @@ impl Program {
 
     /// command is which once been called will execute automatically and finish itself after everything has done.
     /// command will run on bash on linux, cmd on windows
-    pub fn new_command<T, A, I, S>(start_command: T, args_set: Option<A>) -> Self
+    pub fn new_command<T>(start_command: T) -> Self
     where
         T: AsRef<OsStr>,
-        A: IntoIterator<Item = I>,
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
     {
         let pre_args = if cfg!(windows) {
             Some(vec!["cmd", "/C"])
@@ -55,29 +53,48 @@ impl Program {
             None
         };
 
-        Self::new(start_command, pre_args, args_set)
+        Self::new(start_command, pre_args, None::<Vec<Vec<String>>>)
     }
 
     /// this runs the tool under directory `externals`
     /// for example, if you want to run `stress` at `./externals/linux/stress`, the `tool_path` should be `stress`.
     /// the tool directory will be found automatically
-    pub fn new_external_tool<T, A, I, S>(tool_path: T, args_set: Option<A>) -> Self
+    pub fn new_external_tool<T>(tool_path: T) -> Self
     where
         T: AsRef<str>,
-        A: IntoIterator<Item = I>,
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
     {
         Self::new(
             get_local_path(tool_path.as_ref()),
-            None::<I>,
-            args_set,
+            None::<Vec<String>>,
+            None::<Vec<Vec<String>>>,
         )
     }
 
     /// after calling it, drop the instance of Program will not kill the process it calls
-    pub fn make_process_standalone(&mut self) {
+    pub fn standalone(mut self) -> Self {
         self.standalone = true;
+        self
+    }
+
+    pub fn preserve_working_dir(mut self) -> Self {
+        self.preserve_working_dir = true;
+        self
+    }
+
+    pub fn args<I, S>(mut self, args: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        match self.args_set {
+            Some(ref mut set) => {
+                set.push(args.into_iter().map(|e| e.into()).collect());
+            }
+            None => {
+                self.args_set = Some(vec![args.into_iter().map(|e| e.into()).collect()]);
+            }
+        }
+        self
     }
 
     pub fn start(&mut self, args_index: Option<usize>) -> Result<()> {
@@ -99,6 +116,12 @@ impl Program {
 
             let args = &self.args_set.as_ref().unwrap()[args_index.unwrap()];
             self.start_command.args(args);
+        }
+
+        if self.preserve_working_dir {
+            let path = self.start_command.get_program().to_os_string();
+            let path = Path::new(&path).parent().unwrap_or_else(|| Path::new("."));
+            self.start_command.current_dir(path);
         }
 
         self.start_command
@@ -208,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_command() {
-        let mut p = Program::new_command("head", Some(vec![vec!["-c", "2"]]));
+        let mut p = Program::new_command("head").args(vec!["-c", "2"]);
 
         p.start(Some(0)).unwrap();
         p.write("hi").unwrap();
@@ -217,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_external_tool() {
-        let mut p = Program::new_external_tool("ui-sample", None::<Vec<Vec<String>>>);
+        let mut p = Program::new_external_tool("ui-sample");
 
         p.start(None).unwrap();
         std::thread::sleep(std::time::Duration::from_secs(10));
@@ -228,7 +251,7 @@ mod tests {
     #[ignore]
     fn test_drop() {
         {
-            let mut p = Program::new_external_tool("ui-sample", None::<Vec<Vec<String>>>);
+            let mut p = Program::new_external_tool("ui-sample");
 
             p.start(None).unwrap();
             std::thread::sleep(std::time::Duration::from_secs(5));
@@ -239,8 +262,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_standalone() {
-        let mut p = Program::new_external_tool("ui-sample", None::<Vec<Vec<String>>>);
-        p.make_process_standalone();
+        let mut p = Program::new_external_tool("ui-sample").standalone();
 
         p.start(None).unwrap();
     }
