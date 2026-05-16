@@ -1,5 +1,3 @@
-#[cfg(feature = "stress-test")]
-use crate::stress_test::stress_test_manager::TestKind;
 use anyhow::{Result, anyhow};
 use std::ffi::OsStr;
 use std::io::{Read, Write};
@@ -13,10 +11,11 @@ pub struct Program {
     stdin: Option<ChildStdin>,
     stdout: Option<ChildStdout>,
     standalone: bool, // whether to kill the process when the instance is dropping
+    preserve_working_dir: bool, // whether to change the working directory to where the program is. notice the working dir will be restored when the program is closed
 }
 
 impl Program {
-    fn new<T, A, I, S, II, SS>(start_command: T, pre_args: Option<II>, args_set: Option<A>) -> Self
+    pub fn new<T, A, I, S, II, SS>(start_command: T, pre_args: Option<II>, args_set: Option<A>) -> Self
     where
         T: AsRef<OsStr>,
         A: IntoIterator<Item = I>,
@@ -37,6 +36,7 @@ impl Program {
             stdin: None,
             stdout: None,
             standalone: false,
+            preserve_working_dir: false,
         }
     }
 
@@ -176,22 +176,9 @@ impl Program {
     pub fn is_running(&self) -> bool {
         self.process.is_some()
     }
-}
 
-#[cfg(feature = "stress-test")]
-impl Program {
-    pub fn get_test(kind: TestKind) -> Self {
-        #[cfg(target_os = "linux")]
-        match kind {
-            TestKind::Cpu => {
-                Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--cpu", "16"]]))
-            }
-            TestKind::Gpu => Self::new_external_tool("gpu_burn", Some(vec![vec!["-h"]])),
-            TestKind::Ram => {
-                Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--vm", "16"]]))
-            }
-        }
-        // todo windows side
+    pub fn has_args(&self) -> bool {
+        self.args_set.is_some()
     }
 }
 
@@ -256,17 +243,5 @@ mod tests {
         p.make_process_standalone();
 
         p.start(None).unwrap();
-    }
-
-    #[test]
-    fn test_stress_test() {
-        #[cfg(feature = "stress-test")]
-        {
-            let mut test = Program::get_test(TestKind::Cpu);
-            test.start(Some(0)).unwrap();
-            std::thread::sleep(std::time::Duration::from_secs(10));
-            test.close().unwrap();
-            std::thread::sleep(std::time::Duration::from_secs(10));
-        }
     }
 }

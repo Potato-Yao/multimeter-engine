@@ -1,5 +1,5 @@
-use crate::monitor;
 use crate::external_program::program::Program;
+use crate::monitor;
 use anyhow::{Result, anyhow};
 use std::sync::{
     Arc, Mutex,
@@ -50,7 +50,32 @@ pub enum TestKind {
     Ram,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(feature = "stress-test")]
+impl Program {
+    pub fn get_test(kind: TestKind) -> Option<Self> {
+        if cfg!(target_os = "linux") {
+            match kind {
+                TestKind::Cpu => {
+                    Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--cpu", "16"]]))
+                        .into()
+                }
+                TestKind::Gpu => {
+                    Self::new_external_tool("gpu_burn", None::<Vec<Vec<String>>>).into()
+                }
+                TestKind::Ram => {
+                    Self::new_external_tool("stress", Some(vec![vec!["--quiet", "--vm", "16"]]))
+                        .into()
+                }
+            }
+        } else {
+            match kind {
+                _ => None,
+            }
+        }
+        // todo windows side
+    }
+}
+
 impl StressTestManager {
     pub fn new() -> Self {
         Self {
@@ -89,7 +114,7 @@ impl StressTestManager {
         self.combine = combine;
         self.update_state([TestState::Well, TestState::Well, TestState::Well]);
         self.mode = Some(mode);
-        self.start_state_worker(combine)?;
+        self.start_state_worker()?;
 
         Ok(())
     }
@@ -126,14 +151,15 @@ impl StressTestManager {
         self.read_state()
     }
 
-    pub fn start(&mut self, kind: TestKind) -> Result<()> {
-        self.program_mut(kind)?
-            .start(Some(0))
+    fn start(&mut self, kind: TestKind) -> Result<()> {
+        let program = self.program_mut(kind)?;
+        program
+            .start(if program.has_args() { Some(0) } else { None })
             .map(|_| ())
             .map_err(|e| anyhow!(e))
     }
 
-    pub fn close(&mut self, kind: TestKind) -> Result<()> {
+    fn close(&mut self, kind: TestKind) -> Result<()> {
         self.program_mut(kind)?.close()
     }
 
@@ -154,7 +180,7 @@ impl StressTestManager {
         }
     }
 
-    fn start_state_worker(&mut self, combine: TestCombine) -> Result<()> {
+    fn start_state_worker(&mut self) -> Result<()> {
         if self.state_worker_handle.is_some() {
             return Err(anyhow!("state worker already running"));
         }
@@ -203,8 +229,7 @@ impl StressTestManager {
         }
     }
 
-    fn generate_state(state: &mut [TestState; 3]) {
-    }
+    fn generate_state(state: &mut [TestState; 3]) {}
 }
 
 impl Drop for StressTestManager {
