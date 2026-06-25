@@ -1,3 +1,4 @@
+use std::cmp::PartialEq;
 use crate::external_program::program::Program;
 use crate::monitor;
 use anyhow::{Result, anyhow};
@@ -18,6 +19,7 @@ pub const ALL_TEST: TestCombine = CPU_TEST | GPU_TEST | RAM_TEST;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TestState {
+    Waiting,
     Well,
     OverHeat,
     LowPower,
@@ -26,7 +28,7 @@ pub enum TestState {
     NotWorking,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TestMode {
     Infinity,
     AutoJudge,
@@ -37,7 +39,7 @@ pub struct StressTestManager {
     cpu_test: Option<Program>,
     gpu_test: Option<Program>,
     ram_test: Option<Program>,
-    state: Arc<Mutex<[TestState; 3]>>,
+    state: Arc<Mutex<[TestState; 4]>>, // [manager state, cpu state, gpu state, ram state]
     combine: TestCombine,
     mode: Option<TestMode>,
     state_worker_stop: Option<Arc<AtomicBool>>,
@@ -84,6 +86,7 @@ impl StressTestManager {
                 TestState::NotWorking,
                 TestState::NotWorking,
                 TestState::NotWorking,
+                TestState::NotWorking,
             ])),
             combine: 0,
             mode: None,
@@ -99,20 +102,29 @@ impl StressTestManager {
 
         monitor::init()?;
 
-        for (mask, kind) in [
-            (CPU_TEST, TestKind::Cpu),
-            (GPU_TEST, TestKind::Gpu),
-            (RAM_TEST, TestKind::Ram),
-        ] {
-            if combine & mask != 0 {
-                self.start(kind)?;
-            }
-        }
+
 
         self.combine = combine;
-        self.update_state([TestState::Well, TestState::Well, TestState::Well]);
+        self.update_state([TestState::Waiting, TestState::Well, TestState::Well, TestState::Well]);
         self.mode = Some(mode);
+
         self.start_state_worker()?;
+
+        if mode == TestMode::AutoJudge {
+        } else {
+            for (mask, kind) in [
+                (CPU_TEST, TestKind::Cpu),
+                (GPU_TEST, TestKind::Gpu),
+                (RAM_TEST, TestKind::Ram),
+            ] {
+                if combine & mask != 0 {
+                    self.start(kind)?;
+                }
+            }
+            let mut next_state = self.read_state();
+            next_state[0] = TestState::Well;
+            self.update_state(next_state);
+        }
 
         Ok(())
     }
@@ -139,13 +151,14 @@ impl StressTestManager {
             TestState::NotWorking,
             TestState::NotWorking,
             TestState::NotWorking,
+            TestState::NotWorking,
         ]);
         self.mode = None;
 
         Ok(())
     }
 
-    pub fn get_state(&self) -> [TestState; 3] {
+    pub fn get_state(&self) -> [TestState; 4] {
         self.read_state()
     }
 
@@ -213,21 +226,21 @@ impl StressTestManager {
         }
     }
 
-    fn read_state(&self) -> [TestState; 3] {
+    fn read_state(&self) -> [TestState; 4] {
         match self.state.lock() {
             Ok(state) => *state,
             Err(poisoned) => *poisoned.into_inner(),
         }
     }
 
-    fn update_state(&self, next_state: [TestState; 3]) {
+    fn update_state(&self, next_state: [TestState; 4]) {
         match self.state.lock() {
             Ok(mut state) => *state = next_state,
             Err(poisoned) => *poisoned.into_inner() = next_state,
         }
     }
 
-    fn generate_state(state: &mut [TestState; 3]) {}
+    fn generate_state(state: &mut [TestState; 4]) {}
 }
 
 impl Drop for StressTestManager {

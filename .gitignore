@@ -11,3 +11,5 @@ externals/windows/LibreHardwareMonitorWrapper/obj
 .idea
 
 multimeter-engine-doc_zh/book
+
+/build
