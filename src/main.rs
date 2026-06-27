@@ -74,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         while multimeter_engine::get_running_flag() {
             let (socket, _) = listener.accept().await?;
 
-            crate::handle_request(socket);
+            handle_request(socket);
         }
     }
 

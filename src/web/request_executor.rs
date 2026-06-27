@@ -1,12 +1,9 @@
 use crate::monitor::{QueryRequest, query_info};
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
-use crate::util::payload::PayLoad;
-use crate::web::model::{
-    Request, Response, V2Command, V2Error, V2PayloadItem, V2Request, V2Response,
-};
+use crate::web::model::{PayloadItem, Request, Response, ResponseError};
 use crate::web::{
-    INTERNAL_ERROR_STATE, LATEST_VERSION, NOT_FOUND_STATE, PARTIAL_SUCCESS_STATE, RequestKind,
+    Command, INTERNAL_ERROR_STATE, LATEST_VERSION, NOT_FOUND_STATE, PARTIAL_SUCCESS_STATE,
     SUCCESS_STATE,
 };
 use log::debug;
@@ -17,70 +14,28 @@ pub fn execute_request(req: Request) -> Result<Response, Response> {
     debug!("Request is executing: {:?}", req);
 
     match req.version {
-        1 => handle_v1_request(req),
+        1 => handle_command(req),
         _ => Err(Response {
             version: LATEST_VERSION,
             id: req.id,
             state: NOT_FOUND_STATE,
-            payload: PayLoad {
-                value: format!("Unknown request version: {}", req.version).into(),
-                addition: None,
-            },
+            payload: error_payload(
+                "unknown_version",
+                format!("Unsupported request version: {}", req.version),
+            ),
         }),
     }
 }
 
-fn handle_v1_request(req: Request) -> Result<Response, Response> {
-    let state = SUCCESS_STATE;
-
-    let payload = match req.kind {
-        RequestKind::GetInfo => query_info(QueryRequest {
-            target: String::from(req.payload.value),
-            parameter: req.payload.addition,
-        }),
-        RequestKind::ExecuteTool => {
-            todo!()
-        }
-        RequestKind::Shutdown => {
-            // shutdown()
-            todo!()
-        }
-    }
-    .map_err(|e| Response {
-        version: req.version,
-        id: req.id.clone(),
-        state: INTERNAL_ERROR_STATE,
-        payload: PayLoad {
-            value: format!("Failed to process request: {}", e).into(),
-            addition: None,
-        },
-    })?;
-
-    let res = Response {
-        version: req.version,
-        id: req.id,
-        state,
-        payload,
-    };
-
-    if state == SUCCESS_STATE {
-        Ok(res)
-    } else {
-        Err(res)
-    }
-}
-
-pub fn execute_v2_request(req: V2Request) -> Result<V2Response, V2Response> {
-    debug!("V2 request is executing: {:?}", req);
-
+fn handle_command(req: Request) -> Result<Response, Response> {
     match req.command {
-        V2Command::GetInfo => handle_v2_get_info(req),
-        V2Command::ExecuteTool => Err(v2_request_error(
+        Command::GetInfo => handle_get_info(req),
+        Command::ExecuteTool => Err(request_error(
             req.id,
             "not_implemented",
             "execute_tool is not implemented",
         )),
-        V2Command::Shutdown => Err(v2_request_error(
+        Command::Shutdown => Err(request_error(
             req.id,
             "not_implemented",
             "shutdown is not implemented",
@@ -88,7 +43,7 @@ pub fn execute_v2_request(req: V2Request) -> Result<V2Response, V2Response> {
     }
 }
 
-fn handle_v2_get_info(req: V2Request) -> Result<V2Response, V2Response> {
+fn handle_get_info(req: Request) -> Result<Response, Response> {
     let mut payload = BTreeMap::new();
     let mut failures = 0;
 
@@ -99,8 +54,8 @@ fn handle_v2_get_info(req: V2Request) -> Result<V2Response, V2Response> {
                 failures += 1;
                 payload.insert(
                     target,
-                    V2PayloadItem::Error {
-                        error: V2Error {
+                    PayloadItem::Error {
+                        error: ResponseError {
                             code: "invalid_parameter".to_string(),
                             message,
                         },
@@ -117,7 +72,7 @@ fn handle_v2_get_info(req: V2Request) -> Result<V2Response, V2Response> {
             Ok(result) => {
                 payload.insert(
                     target,
-                    V2PayloadItem::Success {
+                    PayloadItem::Success {
                         result: result.value,
                         addition: result.addition.unwrap_or_default(),
                     },
@@ -127,8 +82,8 @@ fn handle_v2_get_info(req: V2Request) -> Result<V2Response, V2Response> {
                 failures += 1;
                 payload.insert(
                     target,
-                    V2PayloadItem::Error {
-                        error: V2Error {
+                    PayloadItem::Error {
+                        error: ResponseError {
                             code: "query_failed".to_string(),
                             message: e.to_string(),
                         },
@@ -146,7 +101,7 @@ fn handle_v2_get_info(req: V2Request) -> Result<V2Response, V2Response> {
         PARTIAL_SUCCESS_STATE
     };
 
-    let response = V2Response {
+    let response = Response {
         version: req.version,
         id: req.id,
         state,
@@ -160,24 +115,27 @@ fn handle_v2_get_info(req: V2Request) -> Result<V2Response, V2Response> {
     }
 }
 
-fn v2_request_error(id: String, code: &str, message: &str) -> V2Response {
+fn request_error(id: String, code: &str, message: &str) -> Response {
+    Response {
+        version: LATEST_VERSION,
+        id,
+        state: NOT_FOUND_STATE,
+        payload: error_payload(code, message),
+    }
+}
+
+fn error_payload(code: &str, message: impl Into<String>) -> BTreeMap<String, PayloadItem> {
     let mut payload = BTreeMap::new();
     payload.insert(
         "error".to_string(),
-        V2PayloadItem::Error {
-            error: V2Error {
+        PayloadItem::Error {
+            error: ResponseError {
                 code: code.to_string(),
-                message: message.to_string(),
+                message: message.into(),
             },
         },
     );
-
-    V2Response {
-        version: 2,
-        id,
-        state: NOT_FOUND_STATE,
-        payload,
-    }
+    payload
 }
 
 fn json_map_to_info_map(map: Map<String, Value>) -> Result<InfoMap, String> {
