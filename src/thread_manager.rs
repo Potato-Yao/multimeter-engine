@@ -1,11 +1,10 @@
+use anyhow::Result;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 use std::thread::JoinHandle;
-use anyhow::Result;
 
-static _THREADS: LazyLock<Mutex<HashMap<String, JoinHandle<()>>>> = LazyLock::new(|| {
-    Mutex::new(HashMap::new())
-});
+static _THREADS: LazyLock<Mutex<HashMap<String, JoinHandle<()>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 pub fn register_thread(_name: &str, _handle: JoinHandle<()>) -> Result<()> {
     todo!();

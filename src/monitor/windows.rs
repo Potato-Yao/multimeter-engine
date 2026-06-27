@@ -153,7 +153,8 @@ impl Windows {
 
         // THE CODE BELOW IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
         let regex_cpu_temperature_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
-        let regex_cpu_tjmax_last = regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
+        let regex_cpu_tjmax_last =
+            regex::Regex::new(r"^CPU Core #\d{1,2} Distance to TjMax").unwrap();
         let regex_cpu_voltage_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_clock_last = regex::Regex::new(r"^CPU Core #\d{1,2}$").unwrap();
         let regex_cpu_clock_last = regex::Regex::new(r"^Core #\d{1,2}$").unwrap();
@@ -166,9 +167,12 @@ impl Windows {
                 map.insert("cpu_temperature".to_string(), sensor.index);
             } else if sensor.name == "CPU Core #1" && sensor.info == "Temperature" {
                 map.insert("cpu_temperature_first".to_string(), sensor.index);
-            } else if regex_cpu_temperature_last.is_match(&sensor.name) && sensor.info == "Temperature" {
+            } else if regex_cpu_temperature_last.is_match(&sensor.name)
+                && sensor.info == "Temperature"
+            {
                 map.insert("cpu_temperature_last".to_string(), sensor.index);
-            } else if sensor.name == "CPU Core #1 Distance to TjMax" && sensor.info == "Temperature" {
+            } else if sensor.name == "CPU Core #1 Distance to TjMax" && sensor.info == "Temperature"
+            {
                 map.insert("cpu_tjmax_first".to_string(), sensor.index);
             } else if regex_cpu_tjmax_last.is_match(&sensor.name) && sensor.info == "Temperature" {
                 map.insert("cpu_tjmax_last".to_string(), sensor.index);
@@ -234,7 +238,9 @@ impl Windows {
                 map.insert("bat_rate".to_string(), sensor.index);
             } else if sensor.name == "Temperature 1" && sensor.info == "Temperature" {
                 map.insert("disk_temperature_first".to_string(), sensor.index);
-            } else if regex_disk_temperature_last.is_match(&sensor.name) && sensor.info == "Temperature" {
+            } else if regex_disk_temperature_last.is_match(&sensor.name)
+                && sensor.info == "Temperature"
+            {
                 map.insert("disk_temperature_last".to_string(), sensor.index);
             }
         }
@@ -253,7 +259,9 @@ impl Windows {
         if let Some(index) = self.index_map.get(key)
             && *index != -1
         {
-            return Ok(Some(self.query_sensor_value(*index).map_err(|e| anyhow!(e))?));
+            return Ok(Some(
+                self.query_sensor_value(*index).map_err(|e| anyhow!(e))?,
+            ));
         }
 
         Ok(None)
@@ -296,9 +304,8 @@ impl Windows {
                     rms = (clocks[0] * 0.3 + clocks[1] * 0.4 + clocks[2] * 0.2 + clocks[3] * 0.1)
                         / 1000.0;
                 } else {
-                    rms =
-                        (clocks[0] * 0.35 + clocks[1] * 0.35 + clocks[2] * 0.2 + clocks[3] * 0.1)
-                            / 1000.0;
+                    rms = (clocks[0] * 0.35 + clocks[1] * 0.35 + clocks[2] * 0.2 + clocks[3] * 0.1)
+                        / 1000.0;
                 }
                 device.cpu.clock = Some(rms);
             } else if !clocks.is_empty() {

@@ -1,14 +1,17 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum DataContainer {
+    Null,
     Int(i32),
     UnsignedLong(u64),
     Float(f64),
     Text(String),
     Boolean(bool),
     Array(Vec<DataContainer>),
+    Object(HashMap<String, DataContainer>),
 }
 
 impl From<i32> for DataContainer {
@@ -68,6 +71,7 @@ impl From<Vec<i32>> for DataContainer {
 impl From<DataContainer> for String {
     fn from(value: DataContainer) -> Self {
         match value {
+            DataContainer::Null => "null".to_string(),
             DataContainer::Int(v) => v.to_string(),
             DataContainer::UnsignedLong(v) => v.to_string(),
             DataContainer::Float(v) => v.to_string(),
@@ -76,6 +80,11 @@ impl From<DataContainer> for String {
             DataContainer::Array(v) => v
                 .into_iter()
                 .map(String::from)
+                .collect::<Vec<String>>()
+                .join(", "),
+            DataContainer::Object(v) => v
+                .into_iter()
+                .map(|(key, value)| format!("{key}: {}", String::from(value)))
                 .collect::<Vec<String>>()
                 .join(", "),
         }

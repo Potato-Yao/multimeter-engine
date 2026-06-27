@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "id": "from_desktop_2",
+  "state": 100,
+  "payload": {
+    "cpu_voltage": {
+      "result": 901,
+      "unit": "mV",
+      "core": 1
+    },
+    "cpu_temperature": {
+      "result": {
+        "first": 82,
+        "last": 78
+      },
+      "unit": "C"
+    }
+  }
+}

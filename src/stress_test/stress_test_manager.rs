@@ -1,7 +1,7 @@
-use std::cmp::PartialEq;
 use crate::external_program::program::Program;
 use crate::monitor;
 use anyhow::{Result, anyhow};
+use std::cmp::PartialEq;
 use std::sync::{
     Arc, Mutex,
     atomic::{AtomicBool, Ordering},
@@ -60,9 +60,7 @@ impl Program {
                 TestKind::Cpu => {
                     Some(Self::new_external_tool("stress").args(vec!["--quiet", "--cpu", "16"]))
                 }
-                TestKind::Gpu => {
-                    Some(Self::new_external_tool("gpu_burn").preserve_working_dir())
-                }
+                TestKind::Gpu => Some(Self::new_external_tool("gpu_burn").preserve_working_dir()),
                 TestKind::Ram => {
                     Some(Self::new_external_tool("stress").args(vec!["--quiet", "--vm", "16"]))
                 }
@@ -102,10 +100,13 @@ impl StressTestManager {
 
         monitor::init()?;
 
-
-
         self.combine = combine;
-        self.update_state([TestState::Waiting, TestState::Well, TestState::Well, TestState::Well]);
+        self.update_state([
+            TestState::Waiting,
+            TestState::Well,
+            TestState::Well,
+            TestState::Well,
+        ]);
         self.mode = Some(mode);
 
         self.start_state_worker()?;

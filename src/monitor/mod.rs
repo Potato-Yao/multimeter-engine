@@ -1,32 +1,32 @@
-#[cfg(any(feature = "web-api", feature = "native-api"))]
-use std::collections::HashMap;
 use crate::get_running_flag;
+use crate::monitor::cross_platform::CrossPlatform;
 #[cfg(feature = "fake-sensors")]
 use crate::monitor::fake::Fake;
-use crate::monitor::cross_platform::CrossPlatform;
 #[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
 use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
+use crate::util::data_container::DataContainer;
+use crate::util::info_map::InfoMap;
+#[cfg(any(feature = "web-api", feature = "native-api"))]
 use crate::util::payload::PayLoad;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use lazy_static::lazy_static;
+#[cfg(any(feature = "web-api", feature = "native-api"))]
+use log::trace;
 use log::{debug, error};
 #[cfg(any(feature = "web-api", feature = "native-api"))]
-use log::{trace};
+use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::Duration;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use tracing::instrument;
-#[cfg(any(feature = "web-api", feature = "native-api"))]
-use crate::util::data_container::DataContainer;
-use crate::util::info_map::InfoMap;
 
+mod cross_platform;
 #[cfg(feature = "fake-sensors")]
 mod fake;
-mod cross_platform;
 
 mod hardware_model;
 pub use self::hardware_model::Device;
@@ -75,7 +75,8 @@ static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLoc
     Mutex::new(m)
 });
 
-static DEVICE: LazyLock<Arc<Mutex<Device>>> = LazyLock::new(|| Arc::new(Mutex::new(Device::default())));
+static DEVICE: LazyLock<Arc<Mutex<Device>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(Device::default())));
 
 pub fn query_device() -> Result<MutexGuard<'static, Device>> {
     DEVICE.lock().map_err(|e| anyhow!(e.to_string()))

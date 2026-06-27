@@ -1,5 +1,6 @@
 use crate::external_program::program::get_local_path;
 use chrono::Local;
+use log::{debug, trace};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpStream};
@@ -7,7 +8,6 @@ use std::path::PathBuf;
 use std::process::{Child, Command as ProcessCommand, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
-use log::{debug, trace};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
@@ -53,7 +53,7 @@ impl LhmHelper {
         lhm_path.pop();
         lhm_path.push("externals");
         lhm_path.push(wrapper_path);
-        debug!("Starting LHM Wrapper from {:?}", lhm_path) ;
+        debug!("Starting LHM Wrapper from {:?}", lhm_path);
         let mut child = ProcessCommand::new(&lhm_path)
             .arg("--log=error")
             // .current_dir(wrapper_path.parent().unwrap_or(&wrapper_path))

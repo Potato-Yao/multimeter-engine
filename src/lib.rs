@@ -1,4 +1,4 @@
-use anyhow::{Result};
+use anyhow::Result;
 use log::debug;
 #[cfg(feature = "web-api")]
 use std::ffi::{CStr, CString, c_char};

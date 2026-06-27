@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "id": "from_desktop_2",
+  "command": "get_info",
+  "payload": {
+    "cpu_voltage": {
+      "unit": "mV",
+      "cores": [1],
+      "precision": 2
+    },
+    "cpu_temperature": {
+      "unit": "C",
+      "cores": ["first", "last"]
+    }
+  }
+}

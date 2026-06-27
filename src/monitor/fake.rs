@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
-use crate::monitor::hardware_model::Device;
 use crate::monitor::Updater;
-use anyhow::{Result};
+use crate::monitor::hardware_model::Device;
+use anyhow::Result;
+use std::sync::{Arc, Mutex};
 
-pub struct Fake {
-}
+pub struct Fake {}
 
 impl Fake {
     pub fn build() -> Result<Arc<Mutex<Self>>> {
