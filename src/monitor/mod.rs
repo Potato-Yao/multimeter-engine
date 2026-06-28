@@ -6,17 +6,12 @@ use crate::monitor::fake::Fake;
 use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
-use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
 use lazy_static::lazy_static;
-#[cfg(any(feature = "web-api", feature = "native-api"))]
-use log::trace;
 use log::{debug, error};
-#[cfg(any(feature = "web-api", feature = "native-api"))]
-use std::collections::HashMap;
 use std::sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::Duration;
@@ -33,9 +28,9 @@ pub use self::hardware_model::Device;
 #[cfg(target_os = "linux")]
 mod linux;
 
+mod query;
 #[cfg(windows)]
 mod windows;
-mod query;
 
 #[derive(Debug)]
 pub struct QueryRequest {
@@ -65,16 +60,6 @@ trait Updater: Send + Sync {
 
 static QUERY_MANAGER: OnceLock<Arc<Mutex<dyn Updater>>> = OnceLock::new();
 
-#[cfg(any(feature = "web-api", feature = "native-api"))]
-static INFO_MAP: LazyLock<Mutex<HashMap<&str, Option<DataContainer>>>> = LazyLock::new(|| {
-    let mut m: HashMap<&str, Option<DataContainer>> = HashMap::new();
-    QUERY_STATEMENTS.iter().for_each(|e| {
-        m.insert(e, None);
-    });
-
-    Mutex::new(m)
-});
-
 static DEVICE: LazyLock<Arc<Mutex<Device>>> =
     LazyLock::new(|| Arc::new(Mutex::new(Device::default())));
 
@@ -90,33 +75,20 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         init()?;
     }
 
-    trace!(
-        "Info map: {:?}",
-        INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?
-    );
-
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
-        // add special handling here
-
-        let map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
-
-        if let Some(value) = map.get(request.target.as_str()) {
-            if let Some(data) = value {
-                Ok(PayLoad {
-                    value: data.clone(),
-                    addition: None,
-                })
-            } else {
-                Err(anyhow::anyhow!(
-                    "No data available for target: {}",
-                    request.target
-                ))
-            }
-        } else {
-            Err(anyhow::anyhow!(
-                "Target not found in info map: {}",
+        let device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
+        match query::QueryField::query(&*device, request.target.as_str()) {
+            query::QueryResult::Found(Some(value)) => Ok(PayLoad {
+                value,
+                addition: None,
+            }),
+            query::QueryResult::Found(None) => Err(anyhow::anyhow!(
+                "No data available for target: {}",
                 request.target
-            ))
+            )),
+            query::QueryResult::NotFound => {
+                Err(anyhow::anyhow!("Unknown query target: {}", request.target))
+            }
         }
     } else {
         Err(anyhow::anyhow!("Unknown query target: {}", request.target))
@@ -144,8 +116,6 @@ pub fn init() -> Result<()> {
     {
         let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut general_mgr = general_manager.lock().map_err(|e| anyhow!(e.to_string()))?;
-        #[cfg(feature = "web-api")]
-        let mut map = INFO_MAP.lock().map_err(|e| anyhow!(e.to_string()))?;
         let mut device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
         if let Err(e) = mgr.update_once(&mut device) {
             error!("Update failed: {}", e);
@@ -175,8 +145,6 @@ pub fn init() -> Result<()> {
             {
                 let mut mgr = manager_normal.lock().unwrap();
                 let mut general_mgr = general_manager_normal.lock().unwrap();
-                #[cfg(feature = "web-api")]
-                let mut map = INFO_MAP.lock().unwrap();
                 let mut device = DEVICE.lock().unwrap();
                 if let Err(e) = mgr.update(&mut device) {
                     error!("Update failed: {}", e);
@@ -196,8 +164,6 @@ pub fn init() -> Result<()> {
             {
                 let mut mgr = manager_slow.lock().unwrap();
                 let mut general_mgr = general_manager_slow.lock().unwrap();
-                #[cfg(feature = "web-api")]
-                let mut map = INFO_MAP.lock().unwrap();
                 let mut device = DEVICE.lock().unwrap();
                 if let Err(e) = mgr.update_slow(&mut device) {
                     error!("Update failed: {}", e);
@@ -281,8 +247,8 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
-    use crate::monitor::query::QueryField;
     use super::*;
+    use crate::monitor::query::QueryField;
 
     #[test]
     fn test_query() {
@@ -302,7 +268,7 @@ mod tests {
             let start = Utc::now();
             let result = query_info(request);
             let end = Utc::now();
-            println!("INFO MAP: {:?}", INFO_MAP.lock().unwrap());
+            println!("DEVICE: {:?}", DEVICE.lock().unwrap());
             println!("Time consumed: {} ms", (end - start).num_milliseconds());
             assert!(result.is_ok());
         }

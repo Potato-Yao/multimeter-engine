@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, parse_macro_input, Fields, LitStr};
+use syn::{Data, DeriveInput, Fields, LitStr, parse_macro_input};
 
-/// to generate something lik
+/// to generate something like
 /// ```rust
 /// impl crate::monitor::query::QueryField for CPU {
 ///     fn query(&self, key: &str) -> crate::monitor::query::QueryResult {
@@ -38,12 +38,16 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
     let struct_name = input.ident;
 
     let fields = match input.data {
-        Data::Struct(s) => {
-            match s.fields {
-                Fields::Named(n) => n.named,
-                _ => {
-                    return syn::Error::new_spanned(struct_name, "This macro only supports struct with fields").to_compile_error().into();
-                }
+        Data::Struct(s) => match s.fields {
+            Fields::Named(n) => n.named,
+            Fields::Unit => Default::default(),
+            _ => {
+                return syn::Error::new_spanned(
+                    struct_name,
+                    "This macro only supports structs with named fields or unit structs",
+                )
+                .to_compile_error()
+                .into();
             }
         },
         _ => {
@@ -67,14 +71,14 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
                     let attr_value = meta.value()?.parse::<LitStr>()?.value();
                     item_statements.push(quote! {
                         #attr_value =>  return crate::monitor::query::QueryResult::Found(
-                            self.#field_name.clone().map(|e| crate::monitor::DataContainer::from(e)),
+                            self.#field_name.clone().map(crate::util::data_container::DataContainer::from),
                         ),
                     });
 
                     Ok(())
                 } else if meta.path.is_ident("nest") {
                     nest_statements.push(quote! {
-                        match self.#field_name.crate::monitor::query(key) {
+                        match crate::monitor::query::QueryField::query(&self.#field_name, key) {
                             crate::monitor::query::QueryResult::NotFound => {},
                             f => return f,
                         }
