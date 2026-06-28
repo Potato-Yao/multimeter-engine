@@ -38,6 +38,12 @@ impl From<String> for DataContainer {
     }
 }
 
+impl From<&String> for DataContainer {
+    fn from(value: &String) -> Self {
+        DataContainer::Text(value.clone())
+    }
+}
+
 impl From<&str> for DataContainer {
     fn from(value: &str) -> Self {
         DataContainer::Text(value.to_string())

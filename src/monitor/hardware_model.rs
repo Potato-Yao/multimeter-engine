@@ -1,5 +1,7 @@
 // #![allow(dead_code)]
 
+use multimeter_engine_macros::QueryGenerator;
+
 #[derive(Default, Debug, Clone)]
 pub struct Device {
     pub system: System,
@@ -54,8 +56,9 @@ impl Battery {
 }
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct CPU {
+    #[query(key = "cpu_name")]
     pub name: Option<String>,             // name of the CPU
     pub usage: Option<f64>,               // cpu usage
     pub package_temperature: Option<f64>, // package temperature

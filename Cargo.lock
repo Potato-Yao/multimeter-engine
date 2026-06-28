@@ -817,6 +817,7 @@ dependencies = [
  "libc 1.0.0-alpha.3",
  "lm-sensors",
  "log",
+ "multimeter-engine-macros",
  "nvml-wrapper",
  "regex",
  "serde",
@@ -827,6 +828,14 @@ dependencies = [
  "tokio-util",
  "tracing",
  "walkdir",
+]
+
+[[package]]
+name = "multimeter-engine-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]

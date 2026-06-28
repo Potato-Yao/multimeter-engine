@@ -6,7 +6,6 @@ use crate::monitor::fake::Fake;
 use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
-#[cfg(any(feature = "web-api", feature = "native-api"))]
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
@@ -36,6 +35,7 @@ mod linux;
 
 #[cfg(windows)]
 mod windows;
+mod query;
 
 #[derive(Debug)]
 pub struct QueryRequest {
@@ -281,6 +281,7 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
+    use crate::monitor::query::QueryField;
     use super::*;
 
     #[test]
@@ -297,7 +298,7 @@ mod tests {
                 target: "bat_capacity_max".to_string(),
                 parameter: None,
             };
-            crate::monitor::init().unwrap();
+            init().unwrap();
             let start = Utc::now();
             let result = query_info(request);
             let end = Utc::now();
@@ -310,5 +311,11 @@ mod tests {
             init().unwrap();
             assert!(query_device().unwrap().cpu.package_temperature.is_some());
         }
+    }
+
+    #[test]
+    fn test_query_generator() {
+        init().unwrap();
+        println!("{:?}", DEVICE.lock().unwrap().cpu.query("cpu_name"));
     }
 }
