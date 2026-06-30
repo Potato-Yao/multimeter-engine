@@ -7,19 +7,12 @@ use tokio_util::codec::{Framed, LinesCodec};
 
 static INIT: Once = Once::new();
 
-const QUERY_TARGETS: &[&str] = &[
-    "cpu_name",
-    "cpu_usage",
-    "cpu_temperature",
-    "cpu_clock_rms",
-    "gpu_name",
-    "gpu_temperature",
-    "mem_total",
-    "mem_available",
-    "bat_state",
-    "os_name",
-    "os_version",
-    "os_host_name",
+const QUERY_BATCHES: &[&[&str]] = &[
+    &["cpu_name", "cpu_usage", "cpu_temperature"],
+    &["gpu_name", "gpu_temperature"],
+    &["mem_total", "mem_available"],
+    &["os_name", "os_version", "os_host_name"],
+    &["bat_state"],
 ];
 
 async fn start_test_server() -> String {
@@ -59,15 +52,18 @@ async fn connect(addr: &str) -> Framed<TcpStream, LinesCodec> {
     Framed::new(socket, LinesCodec::new())
 }
 
-async fn query_once(framed: &mut Framed<TcpStream, LinesCodec>, target: &str) {
+async fn query_once(framed: &mut Framed<TcpStream, LinesCodec>, targets: &[&str]) {
+    let id = format!("bench-{}", targets.join("-"));
+    let payload = targets
+        .iter()
+        .map(|target| ((*target).to_string(), serde_json::Value::Null))
+        .collect::<serde_json::Map<String, serde_json::Value>>();
+
     let request = serde_json::json!({
         "version": 1,
-        "id": format!("bench-{target}"),
-        "kind": "get_info",
-        "payload": {
-            "value": target,
-            "addition": null
-        }
+        "id": id,
+        "command": "get_info",
+        "payload": payload
     });
 
     framed.send(request.to_string()).await.unwrap();
@@ -76,7 +72,10 @@ async fn query_once(framed: &mut Framed<TcpStream, LinesCodec>, target: &str) {
     let response: serde_json::Value = serde_json::from_str(&response).unwrap();
 
     assert_eq!(response["version"], 1);
-    assert_eq!(response["id"], format!("bench-{target}"));
+    assert_eq!(response["id"], id);
+    for target in targets {
+        assert!(response["payload"].get(*target).is_some());
+    }
 }
 
 fn bench_tcp_get_info(c: &mut Criterion) {
@@ -92,8 +91,8 @@ fn bench_tcp_get_info(c: &mut Criterion) {
                 let start = Instant::now();
 
                 for i in 0..iters {
-                    let target = QUERY_TARGETS[i as usize % QUERY_TARGETS.len()];
-                    query_once(&mut framed, target).await;
+                    let targets = QUERY_BATCHES[i as usize % QUERY_BATCHES.len()];
+                    query_once(&mut framed, targets).await;
                 }
 
                 start.elapsed()

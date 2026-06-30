@@ -1,5 +1,5 @@
 use crate::web::model::{PayloadItem, Request, Response, ResponseError};
-use log::{debug, error, info};
+use log::{debug, error};
 use request_executor::execute_request;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

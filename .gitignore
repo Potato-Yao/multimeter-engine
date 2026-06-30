@@ -15,3 +15,4 @@ multimeter-engine-doc_zh/book
 /build
 
 multimeter-engine-macros/target
+multimeter-engine-tui/target

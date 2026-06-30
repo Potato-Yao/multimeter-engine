@@ -11,12 +11,13 @@ use crate::util::info_map::InfoMap;
 use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
 use lazy_static::lazy_static;
-use log::{debug, error};
+use log::{debug, error, warn};
 use std::sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::Duration;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use tracing::instrument;
+use crate::util::admin::is_admin;
 
 mod cross_platform;
 #[cfg(feature = "fake-sensors")]
@@ -101,6 +102,11 @@ pub fn init() -> Result<()> {
     }
 
     debug!("Initializing Query Manager");
+
+    if !is_admin() {
+        warn!("The engine is not running under admin permission, some operation may be restricted!");
+    }
+
     #[cfg(all(windows, not(feature = "fake-sensors")))]
     let manager = Windows::build()?;
     #[cfg(all(target_os = "linux", not(feature = "fake-sensors")))]
