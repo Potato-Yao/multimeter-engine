@@ -1,5 +1,5 @@
 use crate::monitor::Updater;
-use crate::monitor::hardware_model::Device;
+use crate::monitor::model::Device;
 use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
 use std::sync::{Arc, Mutex};

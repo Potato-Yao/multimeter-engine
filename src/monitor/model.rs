@@ -183,3 +183,8 @@ pub struct Disk {
 
 #[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct Network;
+
+#[derive(Default, Debug, Clone)]
+pub struct VirtualProcess {
+
+}

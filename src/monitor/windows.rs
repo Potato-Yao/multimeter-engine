@@ -1,6 +1,6 @@
 use crate::external_program::lhm_helper::LhmHelper;
 use crate::external_program::program::Program;
-use crate::monitor::hardware_model::Device;
+use crate::monitor::model::Device;
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
 use anyhow::{Result, anyhow};

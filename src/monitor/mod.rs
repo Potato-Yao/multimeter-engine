@@ -23,8 +23,8 @@ mod cross_platform;
 #[cfg(feature = "fake-sensors")]
 mod fake;
 
-mod hardware_model;
-pub use self::hardware_model::Device;
+mod model;
+pub use self::model::Device;
 
 #[cfg(target_os = "linux")]
 mod linux;

@@ -1,4 +1,4 @@
-use crate::monitor::hardware_model::Device;
+use crate::monitor::model::Device;
 use crate::monitor::Updater;
 use anyhow::{anyhow, Result};
 use lm_sensors::{ChipRef, LMSensors};
