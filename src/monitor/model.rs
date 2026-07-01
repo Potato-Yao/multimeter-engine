@@ -42,8 +42,8 @@ impl System {
     fn get_cpu_test(
         &self,
         _attach: Option<&crate::util::info_map::InfoMap>,
-    ) -> crate::monitor::query::QueryResult {
-        crate::monitor::query::QueryResult::NotFound
+    ) -> crate::monitor::QueryResult {
+        crate::monitor::QueryResult::NotFound
     }
 }
 

@@ -179,7 +179,7 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
                     });
                     } else {
                         item_statements.push(quote! {
-                        #query_variable_name =>  return crate::monitor::query::QueryResult::Found(
+                        #query_variable_name =>  return crate::monitor::QueryResult::Found(
                             self.#field_name.clone().map(crate::util::data_container::DataContainer::from),
                         ),
                     })

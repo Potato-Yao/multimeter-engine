@@ -7,6 +7,7 @@ use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
 use crate::util::admin::is_admin;
+use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use crate::util::payload::PayLoad;
@@ -29,9 +30,21 @@ pub use self::model::Device;
 #[cfg(target_os = "linux")]
 mod linux;
 
-mod query;
 #[cfg(windows)]
 mod windows;
+
+// #[allow(unused)]
+pub trait QueryField {
+    fn query(&self, key: &str, attach: Option<&InfoMap>) -> QueryResult;
+}
+
+/// the option inside Found means whether finding the corresponding field or not
+#[allow(unused)]
+#[derive(Debug)]
+pub enum QueryResult {
+    Found(Option<DataContainer>),
+    NotFound,
+}
 
 #[derive(Debug)]
 pub struct QueryRequest {
@@ -78,16 +91,16 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
 
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
         let device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
-        match query::QueryField::query(&*device, request.target.as_str(), None) {
-            query::QueryResult::Found(Some(value)) => Ok(PayLoad {
+        match QueryField::query(&*device, request.target.as_str(), None) {
+            QueryResult::Found(Some(value)) => Ok(PayLoad {
                 value,
                 addition: None,
             }),
-            query::QueryResult::Found(None) => Err(anyhow::anyhow!(
+            QueryResult::Found(None) => Err(anyhow::anyhow!(
                 "No data available for target: {}",
                 request.target
             )),
-            query::QueryResult::NotFound => {
+            QueryResult::NotFound => {
                 Err(anyhow::anyhow!("Unknown query target: {}", request.target))
             }
         }
@@ -256,7 +269,7 @@ lazy_static! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::monitor::query::QueryField;
+    use crate::monitor::QueryField;
 
     #[test]
     fn test_query() {
