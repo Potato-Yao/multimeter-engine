@@ -2,33 +2,86 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, Ident, LitStr, parse_macro_input};
 
-/// to generate something like
-/// ```rust,ignore
-/// impl crate::monitor::query::QueryField for CPU {
-///     fn query(&self, key: &str) -> crate::monitor::query::QueryResult {
+/// to generate a `QueryField` implementation:
+///
+/// ```rust
+/// impl crate::monitor::query::QueryField for System {
+///     fn query(
+///         &self,
+///         key: &str,
+///         attach: Option<&crate::util::info_map::InfoMap>,
+///     ) -> crate::monitor::query::QueryResult {
 ///         match key {
-///             "name" => crate::monitor::query::QueryResult::Found(
-///                 self.name.clone().map(|e| crate::monitor::DataContainer::from(e)),
-///             ),
-///             _ => crate::monitor::query::QueryResult::NotFound,
+///             "os_name" => {
+///                 return crate::monitor::query::QueryResult::Found(
+///                     self.os_name
+///                         .clone()
+///                         .map(crate::util::data_container::DataContainer::from),
+///                 )
+///             }
+///             "os_version" => {
+///                 return crate::monitor::query::QueryResult::Found(
+///                     self.os_version
+///                         .clone()
+///                         .map(crate::util::data_container::DataContainer::from),
+///                 )
+///             }
+///             "os_kernel_version" => {
+///                 return crate::monitor::query::QueryResult::Found(
+///                     self.kernel_version
+///                         .clone()
+///                         .map(crate::util::data_container::DataContainer::from),
+///                 )
+///             }
+///             "os_host_name" => {
+///                 return crate::monitor::query::QueryResult::Found(
+///                     self.host_name
+///                         .clone()
+///                         .map(crate::util::data_container::DataContainer::from),
+///                 )
+///             }
+///             "os_activated" => {
+///                 return crate::monitor::query::QueryResult::Found(
+///                     self.is_activated
+///                         .clone()
+///                         .map(crate::util::data_container::DataContainer::from),
+///                 )
+///             }
+///             _ => {}
 ///         }
+///
+///         crate::monitor::query::QueryResult::NotFound
 ///     }
 /// }
 /// ```
-/// and
-/// ```rust,ignore
-/// impl QueryField for Device {
-///     fn query(&self, key: &str) -> QueryResult {
+///
+/// for nest
+///
+/// ```rust
+/// impl crate::monitor::query::QueryField for Device {
+///     fn query(
+///         &self,
+///         key: &str,
+///         attach: Option<&crate::util::info_map::InfoMap>,
+///     ) -> crate::monitor::query::QueryResult {
 ///         match key {
 ///             _ => {}
 ///         }
 ///
-///         match self.cpu.query(key) {
-///             QueryResult::NotFound => {},
-///             f => return f,
+///         match crate::monitor::query::QueryField::query(&self.system, key, attach) {
+///             crate::monitor::query::QueryResult::NotFound => {}
+///             found => return found,
+///         }
+///         match crate::monitor::query::QueryField::query(&self.battery, key, attach) {
+///             crate::monitor::query::QueryResult::NotFound => {}
+///             found => return found,
+///         }
+///         match crate::monitor::query::QueryField::query(&self.cpu, key, attach) {
+///             crate::monitor::query::QueryResult::NotFound => {}
+///             found => return found,
 ///         }
 ///
-///         QueryResult::NotFound
+///         crate::monitor::query::QueryResult::NotFound
 ///     }
 /// }
 /// ```
@@ -113,7 +166,7 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
 
             if state == 2 {
                 nest_statements.push(quote! {
-                    match crate::monitor::query::QueryField::query(&self.#field_name, key, None) {
+                    match crate::monitor::query::QueryField::query(&self.#field_name, key, attach) {
                         crate::monitor::query::QueryResult::NotFound => {},
                         f => return f,
                     }
