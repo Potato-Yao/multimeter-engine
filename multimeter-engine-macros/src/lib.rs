@@ -5,43 +5,43 @@ use syn::{Data, DeriveInput, Fields, Ident, LitStr, parse_macro_input};
 /// to generate a `QueryField` implementation:
 ///
 /// ```rust
-/// impl crate::monitor::query::QueryField for System {
+/// impl crate::monitor::QueryField for System {
 ///     fn query(
 ///         &self,
 ///         key: &str,
 ///         attach: Option<&crate::util::info_map::InfoMap>,
-///     ) -> crate::monitor::query::QueryResult {
+///     ) -> crate::monitor::QueryResult {
 ///         match key {
 ///             "os_name" => {
-///                 return crate::monitor::query::QueryResult::Found(
+///                 return crate::monitor::QueryResult::Found(
 ///                     self.os_name
 ///                         .clone()
 ///                         .map(crate::util::data_container::DataContainer::from),
 ///                 )
 ///             }
 ///             "os_version" => {
-///                 return crate::monitor::query::QueryResult::Found(
+///                 return crate::monitor::QueryResult::Found(
 ///                     self.os_version
 ///                         .clone()
 ///                         .map(crate::util::data_container::DataContainer::from),
 ///                 )
 ///             }
 ///             "os_kernel_version" => {
-///                 return crate::monitor::query::QueryResult::Found(
+///                 return crate::monitor::QueryResult::Found(
 ///                     self.kernel_version
 ///                         .clone()
 ///                         .map(crate::util::data_container::DataContainer::from),
 ///                 )
 ///             }
 ///             "os_host_name" => {
-///                 return crate::monitor::query::QueryResult::Found(
+///                 return crate::monitor::QueryResult::Found(
 ///                     self.host_name
 ///                         .clone()
 ///                         .map(crate::util::data_container::DataContainer::from),
 ///                 )
 ///             }
 ///             "os_activated" => {
-///                 return crate::monitor::query::QueryResult::Found(
+///                 return crate::monitor::QueryResult::Found(
 ///                     self.is_activated
 ///                         .clone()
 ///                         .map(crate::util::data_container::DataContainer::from),
@@ -50,7 +50,7 @@ use syn::{Data, DeriveInput, Fields, Ident, LitStr, parse_macro_input};
 ///             _ => {}
 ///         }
 ///
-///         crate::monitor::query::QueryResult::NotFound
+///         crate::monitor::QueryResult::NotFound
 ///     }
 /// }
 /// ```
@@ -58,30 +58,30 @@ use syn::{Data, DeriveInput, Fields, Ident, LitStr, parse_macro_input};
 /// for nest
 ///
 /// ```rust
-/// impl crate::monitor::query::QueryField for Device {
+/// impl crate::monitor::QueryField for Device {
 ///     fn query(
 ///         &self,
 ///         key: &str,
 ///         attach: Option<&crate::util::info_map::InfoMap>,
-///     ) -> crate::monitor::query::QueryResult {
+///     ) -> crate::monitor::QueryResult {
 ///         match key {
 ///             _ => {}
 ///         }
 ///
-///         match crate::monitor::query::QueryField::query(&self.system, key, attach) {
-///             crate::monitor::query::QueryResult::NotFound => {}
+///         match crate::monitor::QueryField::query(&self.system, key, attach) {
+///             crate::monitor::QueryResult::NotFound => {}
 ///             found => return found,
 ///         }
-///         match crate::monitor::query::QueryField::query(&self.battery, key, attach) {
-///             crate::monitor::query::QueryResult::NotFound => {}
+///         match crate::monitor::QueryField::query(&self.battery, key, attach) {
+///             crate::monitor::QueryResult::NotFound => {}
 ///             found => return found,
 ///         }
-///         match crate::monitor::query::QueryField::query(&self.cpu, key, attach) {
-///             crate::monitor::query::QueryResult::NotFound => {}
+///         match crate::monitor::QueryField::query(&self.cpu, key, attach) {
+///             crate::monitor::QueryResult::NotFound => {}
 ///             found => return found,
 ///         }
 ///
-///         crate::monitor::query::QueryResult::NotFound
+///         crate::monitor::QueryResult::NotFound
 ///     }
 /// }
 /// ```
@@ -166,8 +166,8 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
 
             if state == 2 {
                 nest_statements.push(quote! {
-                    match crate::monitor::query::QueryField::query(&self.#field_name, key, attach) {
-                        crate::monitor::query::QueryResult::NotFound => {},
+                    match crate::monitor::QueryField::query(&self.#field_name, key, attach) {
+                        crate::monitor::QueryResult::NotFound => {},
                         f => return f,
                     }
                 });
@@ -190,8 +190,8 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
     }
 
     let full_statement = quote! {
-        impl crate::monitor::query::QueryField for #struct_name {
-            fn query(&self, key: &str, attach: Option<&crate::util::info_map::InfoMap>) -> crate::monitor::query::QueryResult {
+        impl crate::monitor::QueryField for #struct_name {
+            fn query(&self, key: &str, attach: Option<&crate::util::info_map::InfoMap>) -> crate::monitor::QueryResult {
                 match key {
                     #(#item_statements)*
                     _ => {}
@@ -199,7 +199,7 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
 
                 #(#nest_statements)*
 
-                crate::monitor::query::QueryResult::NotFound
+                crate::monitor::QueryResult::NotFound
             }
         }
     };
