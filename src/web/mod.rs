@@ -38,7 +38,7 @@ pub fn handle_request(line: String) -> Result<Response, Response> {
 fn parse_error_response(line: String) -> Response {
     let error = format!("Failed to parse request: {:?}", line);
     error!("{}", error);
-    
+
     let mut payload = BTreeMap::new();
     payload.insert(
         "error".to_string(),

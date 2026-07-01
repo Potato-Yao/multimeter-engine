@@ -1,9 +1,9 @@
-use crate::monitor::model::Device;
 use crate::monitor::Updater;
-use anyhow::{anyhow, Result};
+use crate::monitor::model::Device;
+use anyhow::{Result, anyhow};
 use lm_sensors::{ChipRef, LMSensors};
-use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use nvml_wrapper::Nvml;
+use nvml_wrapper::enum_wrappers::device::{Clock, TemperatureSensor};
 use std::fs::read_to_string;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -218,8 +218,8 @@ fn remove_unit(string: &str) -> &str {
 #[cfg(all(target_os = "linux", test))]
 mod tests {
     use crate::monitor::linux::remove_unit;
-    use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
     use nvml_wrapper::Nvml;
+    use nvml_wrapper::enum_wrappers::device::TemperatureSensor;
 
     #[test]
     fn test_libsensor() {

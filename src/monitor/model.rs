@@ -38,6 +38,15 @@ pub struct System {
     pub is_activated: Option<bool>,
 }
 
+impl System {
+    fn get_cpu_test(
+        &self,
+        _attach: Option<&crate::util::info_map::InfoMap>,
+    ) -> crate::monitor::query::QueryResult {
+        crate::monitor::query::QueryResult::NotFound
+    }
+}
+
 #[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct Battery {
     #[query(key = "bat_capacity_designed")]
@@ -185,6 +194,4 @@ pub struct Disk {
 pub struct Network;
 
 #[derive(Default, Debug, Clone)]
-pub struct VirtualProcess {
-
-}
+pub struct VirtualProcess {}

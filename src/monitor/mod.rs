@@ -6,6 +6,7 @@ use crate::monitor::fake::Fake;
 use crate::monitor::linux::Linux;
 #[cfg(all(target_os = "windows", not(feature = "fake-sensors")))]
 use crate::monitor::windows::Windows;
+use crate::util::admin::is_admin;
 use crate::util::info_map::InfoMap;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use crate::util::payload::PayLoad;
@@ -17,7 +18,6 @@ use std::thread;
 use std::time::Duration;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use tracing::instrument;
-use crate::util::admin::is_admin;
 
 mod cross_platform;
 #[cfg(feature = "fake-sensors")]
@@ -78,7 +78,7 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
 
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
         let device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
-        match query::QueryField::query(&*device, request.target.as_str()) {
+        match query::QueryField::query(&*device, request.target.as_str(), None) {
             query::QueryResult::Found(Some(value)) => Ok(PayLoad {
                 value,
                 addition: None,
@@ -104,7 +104,9 @@ pub fn init() -> Result<()> {
     debug!("Initializing Query Manager");
 
     if !is_admin() {
-        warn!("The engine is not running under admin permission, some operation may be restricted!");
+        warn!(
+            "The engine is not running under admin permission, some operation may be restricted!"
+        );
     }
 
     #[cfg(all(windows, not(feature = "fake-sensors")))]
@@ -288,6 +290,6 @@ mod tests {
     #[test]
     fn test_query_generator() {
         init().unwrap();
-        println!("{:?}", DEVICE.lock().unwrap().cpu.query("cpu_name"));
+        println!("{:?}", DEVICE.lock().unwrap().cpu.query("cpu_name", None));
     }
 }
