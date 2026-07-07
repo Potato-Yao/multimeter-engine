@@ -1,5 +1,5 @@
 use crate::monitor::Updater;
-use crate::monitor::model::Device;
+use crate::monitor::model::Model;
 use anyhow::Result;
 use std::sync::{Arc, Mutex};
 
@@ -12,7 +12,7 @@ impl Fake {
 }
 
 impl Updater for Fake {
-    fn update_once(&mut self, device: &mut Device) -> Result<()> {
+    fn update_once(&mut self, device: &mut Model) -> Result<()> {
         device.system.os_name = Some("fake-os".to_string());
         device.system.os_version = Some("0.0".to_string());
         device.system.kernel_version = Some("0.0".to_string());
@@ -58,11 +58,11 @@ impl Updater for Fake {
         Ok(())
     }
 
-    fn update_slow(&mut self, _device: &mut Device) -> Result<()> {
+    fn update_slow(&mut self, _device: &mut Model) -> Result<()> {
         Ok(())
     }
 
-    fn update(&mut self, _device: &mut Device) -> Result<()> {
+    fn update(&mut self, _device: &mut Model) -> Result<()> {
         Ok(())
     }
 

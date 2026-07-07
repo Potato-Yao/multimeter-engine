@@ -1,9 +1,13 @@
 #![allow(dead_code)]
 
+use crate::monitor::{ConditionQueryStrategy, QueryResult, query_process};
+use crate::util::data_container::DataContainer;
+use crate::util::info_map::InfoMap;
 use multimeter_engine_macros::QueryGenerator;
+use sysinfo::Process;
 
 #[derive(Default, Debug, Clone, QueryGenerator)]
-pub struct Device {
+pub struct Model {
     #[query(nest)]
     pub system: System,
     #[query(nest)]
@@ -24,6 +28,13 @@ pub struct Device {
     pub network: Network,
 }
 
+/// some info costs too much memory or time to store and update, take them as variable may not be a good choice.
+/// like running processes. they costs too much memory to store, data vary rapidly and cannot update by perform partly insert and delete on origin data.
+/// so instead of take a Vec to store them and reconstruct it every time, the better choice is just leave an interface for querying.
+/// this is what the [VirtualDevice] used for.
+#[derive(Default, Debug, Clone, QueryGenerator)]
+pub struct VirtualDevice;
+
 #[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct System {
     #[query(key = "os_name")]
@@ -36,14 +47,101 @@ pub struct System {
     pub host_name: Option<String>,
     #[query(key = "os_activated")]
     pub is_activated: Option<bool>,
+    #[query(key = "os_process", function = "get_process")]
+    pub process: VirtualDevice,
 }
 
 impl System {
-    fn get_cpu_test(
-        &self,
-        _attach: Option<&crate::util::info_map::InfoMap>,
-    ) -> crate::monitor::QueryResult {
-        crate::monitor::QueryResult::NotFound
+    fn get_process(&self, attach: Option<&InfoMap>) -> QueryResult {
+        process_query(attach)
+    }
+}
+
+pub(crate) fn process_query(attach: Option<&InfoMap>) -> QueryResult {
+    let strategy = process_strategy(attach);
+
+    match query_process(strategy) {
+        Ok(processes) => QueryResult::Found(Some(DataContainer::from(processes))),
+        Err(_) => QueryResult::Found(None),
+    }
+}
+
+fn process_strategy(attach: Option<&InfoMap>) -> ConditionQueryStrategy<Process> {
+    let mut strategy = ConditionQueryStrategy::default();
+    let Some(attach) = attach else {
+        return strategy;
+    };
+
+    if let Some(limit) = attach.get("limit").and_then(data_container_to_usize) {
+        strategy.limit = Some(limit);
+    }
+
+    let descending = attach
+        .get("descending")
+        .and_then(data_container_to_bool)
+        .unwrap_or(false);
+
+    match attach.get("sort_by").and_then(data_container_to_str) {
+        Some("pid") => {
+            strategy.comparer = if descending {
+                |a, b| b.pid().as_u32().cmp(&a.pid().as_u32())
+            } else {
+                |a, b| a.pid().as_u32().cmp(&b.pid().as_u32())
+            };
+        }
+        Some("name") => {
+            strategy.comparer = if descending {
+                |a, b| b.name().cmp(a.name())
+            } else {
+                |a, b| a.name().cmp(b.name())
+            };
+        }
+        Some("memory") => {
+            strategy.comparer = if descending {
+                |a, b| b.memory().cmp(&a.memory())
+            } else {
+                |a, b| a.memory().cmp(&b.memory())
+            };
+        }
+        Some("virtual_memory") => {
+            strategy.comparer = if descending {
+                |a, b| b.virtual_memory().cmp(&a.virtual_memory())
+            } else {
+                |a, b| a.virtual_memory().cmp(&b.virtual_memory())
+            };
+        }
+        Some("cpu") | Some("cpu_usage") | None => {
+            strategy.comparer = if descending {
+                |a, b| b.cpu_usage().total_cmp(&a.cpu_usage())
+            } else {
+                |a, b| a.cpu_usage().total_cmp(&b.cpu_usage())
+            };
+        }
+        Some(_) => {}
+    }
+
+    strategy
+}
+
+fn data_container_to_usize(value: &DataContainer) -> Option<usize> {
+    match value {
+        DataContainer::Int(value) => (*value).try_into().ok(),
+        DataContainer::UnsignedLong(value) => (*value).try_into().ok(),
+        _ => None,
+    }
+}
+
+fn data_container_to_bool(value: &DataContainer) -> Option<bool> {
+    match value {
+        DataContainer::Boolean(value) => Some(*value),
+        _ => None,
+    }
+}
+
+fn data_container_to_str(value: &DataContainer) -> Option<&str> {
+    match value {
+        DataContainer::Text(value) => Some(value.as_str()),
+        _ => None,
     }
 }
 

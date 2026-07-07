@@ -1,9 +1,9 @@
 use crate::monitor::Updater;
-use crate::monitor::model::Device;
+use crate::monitor::model::Model;
 use anyhow::Result;
 use starship_battery::{Battery, Manager, State};
 use std::sync::{Arc, Mutex};
-use sysinfo::System;
+use sysinfo::{Process, System};
 
 struct BatteryWrapper(Manager, Option<Battery>);
 
@@ -20,7 +20,7 @@ pub struct CrossPlatform {
 }
 
 impl Updater for CrossPlatform {
-    fn update_once(&mut self, device: &mut Device) -> Result<()> {
+    fn update_once(&mut self, device: &mut Model) -> Result<()> {
         self.system.0.refresh_memory();
         self.system.0.refresh_cpu_all();
 
@@ -48,11 +48,11 @@ impl Updater for CrossPlatform {
         Ok(())
     }
 
-    fn update_slow(&mut self, _device: &mut Device) -> Result<()> {
+    fn update_slow(&mut self, _device: &mut Model) -> Result<()> {
         Ok(())
     }
 
-    fn update(&mut self, device: &mut Device) -> Result<()> {
+    fn update(&mut self, device: &mut Model) -> Result<()> {
         self.system.0.refresh_memory();
         self.system.0.refresh_cpu_all();
 
@@ -105,6 +105,10 @@ impl CrossPlatform {
             battery: BatteryWrapper(manager, bat),
             system: SysinfoWrapper(sysinfo),
         })))
+    }
+
+    pub fn get_process(&self) -> Vec<&Process> {
+        self.system.0.processes().iter().map(|e| e.1).collect()
     }
 }
 

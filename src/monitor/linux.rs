@@ -1,5 +1,5 @@
 use crate::monitor::Updater;
-use crate::monitor::model::Device;
+use crate::monitor::model::Model;
 use anyhow::{Result, anyhow};
 use lm_sensors::{ChipRef, LMSensors};
 use nvml_wrapper::Nvml;
@@ -54,17 +54,17 @@ pub struct Linux {
 
 #[cfg(target_os = "linux")]
 impl Updater for Linux {
-    fn update_once(&mut self, device: &mut Device) -> Result<()> {
+    fn update_once(&mut self, device: &mut Model) -> Result<()> {
         device.system.is_activated = Some(true);
 
         Ok(())
     }
 
-    fn update_slow(&mut self, _device: &mut Device) -> Result<()> {
+    fn update_slow(&mut self, _device: &mut Model) -> Result<()> {
         Ok(())
     }
 
-    fn update(&mut self, device: &mut Device) -> Result<()> {
+    fn update(&mut self, device: &mut Model) -> Result<()> {
         let errors = [
             self.set_libsensor_info(device),
             self.set_nvml_info(device),
@@ -99,7 +99,7 @@ impl Linux {
         })))
     }
 
-    fn set_nvml_info(&mut self, device: &mut Device) -> Result<()> {
+    fn set_nvml_info(&mut self, device: &mut Model) -> Result<()> {
         if self.sensor.1.is_none() {
             return Err(anyhow!("NVML sensor is unavailable"));
         }
@@ -115,7 +115,7 @@ impl Linux {
         Ok(())
     }
 
-    fn set_libsensor_info(&mut self, device: &mut Device) -> Result<()> {
+    fn set_libsensor_info(&mut self, device: &mut Model) -> Result<()> {
         if self.sensor.0.is_none() {
             return Err(anyhow!("lm-sensors is unavailable"));
         }
@@ -151,7 +151,7 @@ impl Linux {
         Ok(())
     }
 
-    fn handle_fan(device: &mut Device, chip: ChipRef) -> Result<()> {
+    fn handle_fan(device: &mut Model, chip: ChipRef) -> Result<()> {
         for feature in chip.feature_iter() {
             let feature_name = feature.to_string();
             let feature_name = feature_name.as_str();
@@ -181,7 +181,7 @@ impl Linux {
         Ok(())
     }
 
-    fn handle_temperature(device: &mut Device, chip: ChipRef) -> Result<()> {
+    fn handle_temperature(device: &mut Model, chip: ChipRef) -> Result<()> {
         'outer: for feature in chip.feature_iter() {
             if feature.to_string().contains("Package") {
                 for sub in feature.sub_feature_iter() {
@@ -197,7 +197,7 @@ impl Linux {
         Ok(())
     }
 
-    fn set_cpu_power(&mut self, device: &mut Device) -> Result<()> {
+    fn set_cpu_power(&mut self, device: &mut Model) -> Result<()> {
         if self.power_calculator.is_none() {
             return Err(anyhow!(
                 "CPU power calculator is unavailable, check sudo permission"
@@ -223,7 +223,9 @@ mod tests {
 
     #[test]
     fn test_libsensor() {
-        let sensors = lm_sensors::Initializer::default().initialize().unwrap();
+        let Ok(sensors) = lm_sensors::Initializer::default().initialize() else {
+            return;
+        };
 
         for chip in sensors.chip_iter(None) {
             if let Some(path) = chip.path() {

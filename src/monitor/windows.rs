@@ -1,6 +1,6 @@
 use crate::external_program::lhm_helper::LhmHelper;
 use crate::external_program::program::Program;
-use crate::monitor::model::Device;
+use crate::monitor::model::Model;
 use crate::monitor::{QUERY_STATEMENTS, Updater};
 use crate::util::admin::is_admin;
 use anyhow::{Result, anyhow};
@@ -32,19 +32,19 @@ struct WindowsPayload {
 }
 
 impl Updater for Windows {
-    fn update_once(&mut self, device: &mut Device) -> Result<()> {
+    fn update_once(&mut self, device: &mut Model) -> Result<()> {
         self.set_activation_state(device)?;
 
         Ok(())
     }
 
-    fn update_slow(&mut self, device: &mut Device) -> Result<()> {
+    fn update_slow(&mut self, device: &mut Model) -> Result<()> {
         self.set_disk_info(device)?;
 
         Ok(())
     }
 
-    fn update(&mut self, device: &mut Device) -> Result<()> {
+    fn update(&mut self, device: &mut Model) -> Result<()> {
         self.lhm_helper.update()?;
 
         if let Some(value) = self.query_optional_sensor_value("bat_capacity_designed")? {
@@ -267,7 +267,7 @@ impl Windows {
         Ok(None)
     }
 
-    fn set_battery_state(&mut self, device: &mut Device) {
+    fn set_battery_state(&mut self, device: &mut Model) {
         let capacity = device.battery.remain_capacity;
         let rate = device.battery.rate;
 
@@ -284,7 +284,7 @@ impl Windows {
         }
     }
 
-    fn set_cpu_clock(&mut self, device: &mut Device) -> Result<()> {
+    fn set_cpu_clock(&mut self, device: &mut Model) -> Result<()> {
         let clock_begin = *self.index_map.get("cpu_clock_first").unwrap();
         let clock_end = *self.index_map.get("cpu_clock_last").unwrap();
 
@@ -315,7 +315,7 @@ impl Windows {
         Ok(())
     }
 
-    fn set_activation_state(&mut self, device: &mut Device) -> Result<()> {
+    fn set_activation_state(&mut self, device: &mut Model) -> Result<()> {
         let mut slmgr = Program::new_command(
             "cscript",
             Some(vec![vec![
@@ -338,7 +338,7 @@ impl Windows {
         Ok(())
     }
 
-    fn set_disk_info(&mut self, _device: &mut Device) -> Result<()> {
+    fn set_disk_info(&mut self, _device: &mut Model) -> Result<()> {
         let mut diskpart = Program::new_command("diskpart", None);
 
         diskpart.start(None)?;

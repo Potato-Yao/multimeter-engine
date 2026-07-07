@@ -14,9 +14,14 @@ use crate::util::payload::PayLoad;
 use anyhow::{Result, anyhow};
 use lazy_static::lazy_static;
 use log::{debug, error, warn};
-use std::sync::{Arc, LazyLock, Mutex, MutexGuard, OnceLock};
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::fmt;
+use std::ops::{Deref, DerefMut};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::thread;
 use std::time::Duration;
+use sysinfo::Process;
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 use tracing::instrument;
 
@@ -25,7 +30,7 @@ mod cross_platform;
 mod fake;
 
 mod model;
-pub use self::model::Device;
+pub use self::model::Model;
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -46,6 +51,147 @@ pub enum QueryResult {
     NotFound,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProcessSnapshot {
+    pub pid: u32,
+    pub parent: Option<u32>,
+    pub name: String,
+    pub cmd: Vec<String>,
+    pub exe: Option<String>,
+    pub cwd: Option<String>,
+    pub root: Option<String>,
+    pub environ: Vec<String>,
+    pub status: String,
+    pub start_time: u64,
+    pub run_time: u64,
+    pub cpu_usage: f64,
+    pub memory: u64,
+    pub virtual_memory: u64,
+    pub total_read_bytes: u64,
+    pub read_bytes: u64,
+    pub total_written_bytes: u64,
+    pub written_bytes: u64,
+}
+
+impl ProcessSnapshot {
+    fn from_process(process: &Process) -> Self {
+        let disk_usage = process.disk_usage();
+
+        Self {
+            pid: process.pid().as_u32(),
+            parent: process.parent().map(|pid| pid.as_u32()),
+            name: process.name().to_string_lossy().into_owned(),
+            cmd: process
+                .cmd()
+                .iter()
+                .map(|value| value.to_string_lossy().into_owned())
+                .collect(),
+            exe: process
+                .exe()
+                .map(|path| path.to_string_lossy().into_owned()),
+            cwd: process
+                .cwd()
+                .map(|path| path.to_string_lossy().into_owned()),
+            root: process
+                .root()
+                .map(|path| path.to_string_lossy().into_owned()),
+            environ: process
+                .environ()
+                .iter()
+                .map(|value| value.to_string_lossy().into_owned())
+                .collect(),
+            status: format!("{:?}", process.status()),
+            start_time: process.start_time(),
+            run_time: process.run_time(),
+            cpu_usage: process.cpu_usage() as f64,
+            memory: process.memory(),
+            virtual_memory: process.virtual_memory(),
+            total_read_bytes: disk_usage.total_read_bytes,
+            read_bytes: disk_usage.read_bytes,
+            total_written_bytes: disk_usage.total_written_bytes,
+            written_bytes: disk_usage.written_bytes,
+        }
+    }
+}
+
+impl From<ProcessSnapshot> for DataContainer {
+    fn from(value: ProcessSnapshot) -> Self {
+        let mut data = HashMap::new();
+
+        data.insert("pid".to_string(), DataContainer::from(value.pid as u64));
+        data.insert(
+            "parent".to_string(),
+            value
+                .parent
+                .map(|pid| DataContainer::from(pid as u64))
+                .unwrap_or(DataContainer::Null),
+        );
+        data.insert("name".to_string(), DataContainer::from(value.name));
+        data.insert("cmd".to_string(), DataContainer::from(value.cmd));
+        data.insert(
+            "exe".to_string(),
+            value
+                .exe
+                .map(DataContainer::from)
+                .unwrap_or(DataContainer::Null),
+        );
+        data.insert(
+            "cwd".to_string(),
+            value
+                .cwd
+                .map(DataContainer::from)
+                .unwrap_or(DataContainer::Null),
+        );
+        data.insert(
+            "root".to_string(),
+            value
+                .root
+                .map(DataContainer::from)
+                .unwrap_or(DataContainer::Null),
+        );
+        data.insert("environ".to_string(), DataContainer::from(value.environ));
+        data.insert("status".to_string(), DataContainer::from(value.status));
+        data.insert(
+            "start_time".to_string(),
+            DataContainer::from(value.start_time),
+        );
+        data.insert("run_time".to_string(), DataContainer::from(value.run_time));
+        data.insert(
+            "cpu_usage".to_string(),
+            DataContainer::from(value.cpu_usage),
+        );
+        data.insert("memory".to_string(), DataContainer::from(value.memory));
+        data.insert(
+            "virtual_memory".to_string(),
+            DataContainer::from(value.virtual_memory),
+        );
+        data.insert(
+            "total_read_bytes".to_string(),
+            DataContainer::from(value.total_read_bytes),
+        );
+        data.insert(
+            "read_bytes".to_string(),
+            DataContainer::from(value.read_bytes),
+        );
+        data.insert(
+            "total_written_bytes".to_string(),
+            DataContainer::from(value.total_written_bytes),
+        );
+        data.insert(
+            "written_bytes".to_string(),
+            DataContainer::from(value.written_bytes),
+        );
+
+        DataContainer::Object(data)
+    }
+}
+
+impl From<Vec<ProcessSnapshot>> for DataContainer {
+    fn from(value: Vec<ProcessSnapshot>) -> Self {
+        DataContainer::Array(value.into_iter().map(DataContainer::from).collect())
+    }
+}
+
 #[derive(Debug)]
 pub struct QueryRequest {
     pub target: String,
@@ -63,35 +209,195 @@ pub struct QueryRequest {
 // }
 
 trait Updater: Send + Sync {
-    fn update_once(&mut self, device: &mut Device) -> Result<()>;
+    fn update_once(&mut self, model: &mut Model) -> Result<()>;
 
-    fn update_slow(&mut self, device: &mut Device) -> Result<()>;
+    fn update_slow(&mut self, model: &mut Model) -> Result<()>;
 
-    fn update(&mut self, device: &mut Device) -> Result<()>;
+    fn update(&mut self, model: &mut Model) -> Result<()>;
 
     fn shutdown(&mut self) -> Result<()>;
 }
 
-static QUERY_MANAGER: OnceLock<Arc<Mutex<dyn Updater>>> = OnceLock::new();
+pub struct Device {
+    model: Model,
+    platform_updater: Arc<Mutex<dyn Updater>>,
+    cross_platform_updater: Arc<Mutex<CrossPlatform>>,
+}
 
-static DEVICE: LazyLock<Arc<Mutex<Device>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(Device::default())));
+impl Device {
+    fn new(
+        platform_updater: Arc<Mutex<dyn Updater>>,
+        cross_platform_updater: Arc<Mutex<CrossPlatform>>,
+    ) -> Self {
+        Self {
+            model: Model::default(),
+            platform_updater,
+            cross_platform_updater,
+        }
+    }
+
+    fn update_once(&mut self) {
+        let Self {
+            model,
+            platform_updater,
+            cross_platform_updater,
+        } = self;
+
+        handle_update(
+            platform_updater,
+            model,
+            "Update failed",
+            |updater, model| {
+                updater.update_once(model)?;
+                updater.update_slow(model)?;
+                updater.update(model)
+            },
+        );
+        handle_update(
+            cross_platform_updater,
+            model,
+            "Update failed",
+            |updater, model| {
+                updater.update_once(model)?;
+                updater.update_slow(model)?;
+                updater.update(model)
+            },
+        );
+    }
+
+    fn update(&mut self) {
+        let Self {
+            model,
+            platform_updater,
+            cross_platform_updater,
+        } = self;
+
+        handle_update(
+            platform_updater,
+            model,
+            "Update failed",
+            |updater, model| updater.update(model),
+        );
+        handle_update(
+            cross_platform_updater,
+            model,
+            "General update failed",
+            |updater, model| updater.update(model),
+        );
+    }
+
+    fn update_slow(&mut self) {
+        let Self {
+            model,
+            platform_updater,
+            cross_platform_updater,
+        } = self;
+
+        handle_update(
+            platform_updater,
+            model,
+            "Update failed",
+            |updater, model| updater.update_slow(model),
+        );
+        handle_update(
+            cross_platform_updater,
+            model,
+            "Update failed",
+            |updater, model| updater.update_slow(model),
+        );
+    }
+
+    fn shutdown(&mut self) -> Result<()> {
+        self.platform_updater
+            .lock()
+            .map_err(|e| anyhow!(e.to_string()))?
+            .shutdown()?;
+        self.cross_platform_updater
+            .lock()
+            .map_err(|e| anyhow!(e.to_string()))?
+            .shutdown()
+    }
+}
+
+fn handle_update<U: Updater + ?Sized>(
+    updater: &Arc<Mutex<U>>,
+    model: &mut Model,
+    error_message: &str,
+    update: impl FnOnce(&mut U, &mut Model) -> Result<()>,
+) {
+    match updater.lock() {
+        Ok(mut updater) => {
+            if let Err(e) = update(&mut *updater, model) {
+                error!("{}: {}", error_message, e);
+            }
+        }
+        Err(e) => error!("{}: {}", error_message, e),
+    }
+}
+
+impl Deref for Device {
+    type Target = Model;
+
+    fn deref(&self) -> &Self::Target {
+        &self.model
+    }
+}
+
+impl DerefMut for Device {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.model
+    }
+}
+
+impl fmt::Debug for Device {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Device")
+            .field("model", &self.model)
+            .finish_non_exhaustive()
+    }
+}
+
+static DEVICE: OnceLock<Arc<Mutex<Device>>> = OnceLock::new();
 
 pub fn query_device() -> Result<MutexGuard<'static, Device>> {
-    DEVICE.lock().map_err(|e| anyhow!(e.to_string()))
+    if DEVICE.get().is_none() {
+        init()?;
+    }
+
+    DEVICE
+        .get()
+        .ok_or_else(|| anyhow!("Device is not initialized"))?
+        .lock()
+        .map_err(|e| anyhow!(e.to_string()))
 }
 
 #[instrument]
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
     debug!("Query Request: {:?}", request);
-    if QUERY_MANAGER.get().is_none() {
+    if DEVICE.get().is_none() {
         init()?;
     }
 
+    if request.target == "process" {
+        return match crate::monitor::model::process_query(request.parameter.as_ref()) {
+            QueryResult::Found(Some(value)) => Ok(PayLoad {
+                value,
+                addition: None,
+            }),
+            QueryResult::Found(None) => Err(anyhow::anyhow!(
+                "No data available for target: {}",
+                request.target
+            )),
+            QueryResult::NotFound => {
+                Err(anyhow::anyhow!("Unknown query target: {}", request.target))
+            }
+        };
+    }
+
     if QUERY_STATEMENTS.contains(&request.target.as_str()) {
-        let device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
-        match QueryField::query(&*device, request.target.as_str(), None) {
+        let device = query_device()?;
+        match QueryField::query(&device.model, request.target.as_str(), None) {
             QueryResult::Found(Some(value)) => Ok(PayLoad {
                 value,
                 addition: None,
@@ -110,7 +416,7 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
 }
 
 pub fn init() -> Result<()> {
-    if QUERY_MANAGER.get().is_some() {
+    if DEVICE.get().is_some() {
         return Ok(());
     }
 
@@ -131,67 +437,30 @@ pub fn init() -> Result<()> {
 
     let general_manager = CrossPlatform::build()?;
 
-    let _ = QUERY_MANAGER.set(manager.clone());
-    let _ = QUERY_MANAGER.set(general_manager.clone());
+    let mut device = Device::new(manager.clone(), general_manager.clone());
+    device.update_once();
 
-    {
-        let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
-        let mut general_mgr = general_manager.lock().map_err(|e| anyhow!(e.to_string()))?;
-        let mut device = DEVICE.lock().map_err(|e| anyhow!(e.to_string()))?;
-        if let Err(e) = mgr.update_once(&mut device) {
-            error!("Update failed: {}", e);
-        }
-        if let Err(e) = mgr.update_slow(&mut device) {
-            error!("Update failed: {}", e);
-        }
-        if let Err(e) = mgr.update(&mut device) {
-            error!("Update failed: {}", e);
-        }
-
-        if let Err(e) = general_mgr.update_once(&mut device) {
-            error!("Update failed: {}", e);
-        }
-        if let Err(e) = general_mgr.update_slow(&mut device) {
-            error!("Update failed: {}", e);
-        }
-        if let Err(e) = general_mgr.update(&mut device) {
-            error!("Update failed: {}", e);
-        }
+    if DEVICE.set(Arc::new(Mutex::new(device))).is_err() {
+        return Ok(());
     }
 
-    let manager_normal = manager.clone();
-    let general_manager_normal = general_manager.clone();
+    let device_normal = DEVICE.get().unwrap().clone();
     thread::spawn(move || {
         while get_running_flag() {
             {
-                let mut mgr = manager_normal.lock().unwrap();
-                let mut general_mgr = general_manager_normal.lock().unwrap();
-                let mut device = DEVICE.lock().unwrap();
-                if let Err(e) = mgr.update(&mut device) {
-                    error!("Update failed: {}", e);
-                }
-                if let Err(e) = general_mgr.update(&mut device) {
-                    error!("General update failed: {}", e);
-                }
+                let mut device = device_normal.lock().unwrap();
+                device.update();
             }
             thread::sleep(Duration::from_millis(500));
         }
     });
 
-    let manager_slow = manager.clone();
-    let general_manager_slow = general_manager.clone();
+    let device_slow = DEVICE.get().unwrap().clone();
     thread::spawn(move || {
         while get_running_flag() {
             {
-                let mut mgr = manager_slow.lock().unwrap();
-                let mut general_mgr = general_manager_slow.lock().unwrap();
-                let mut device = DEVICE.lock().unwrap();
-                if let Err(e) = mgr.update_slow(&mut device) {
-                    error!("Update failed: {}", e);
-                }
-                if let Err(e) = general_mgr.update_slow(&mut device) {
-                    error!("Update failed: {}", e);
-                }
+                let mut device = device_slow.lock().unwrap();
+                device.update_slow();
             }
             thread::sleep(Duration::from_millis(10000));
         }
@@ -201,12 +470,56 @@ pub fn init() -> Result<()> {
 }
 
 pub fn shutdown() -> Result<()> {
-    if let Some(manager) = QUERY_MANAGER.get() {
-        let mut mgr = manager.lock().map_err(|e| anyhow!(e.to_string()))?;
-        return mgr.shutdown();
+    if let Some(device) = DEVICE.get() {
+        return device
+            .lock()
+            .map_err(|e| anyhow!(e.to_string()))?
+            .shutdown();
     }
 
     Ok(())
+}
+
+pub struct ConditionQueryStrategy<T> {
+    pub comparer: fn(&T, &T) -> Ordering,
+    // true for keeping the element
+    pub keep: fn(&T) -> bool,
+    // keep first n elements
+    pub limit: Option<usize>,
+}
+
+impl Default for ConditionQueryStrategy<Process> {
+    fn default() -> Self {
+        Self {
+            comparer: |a, b| a.cpu_usage().total_cmp(&b.cpu_usage()),
+            keep: |_| true,
+            limit: None,
+        }
+    }
+}
+
+pub fn query_process(strategy: ConditionQueryStrategy<Process>) -> Result<Vec<ProcessSnapshot>> {
+    let device = query_device()?;
+    let cross_platform_updater = device
+        .cross_platform_updater
+        .lock()
+        .map_err(|e| anyhow!(e.to_string()))?;
+    let source = cross_platform_updater.get_process();
+    let mut result: Vec<&Process> = source
+        .iter()
+        .copied()
+        .filter(|e| (strategy.keep)(*e))
+        .collect();
+    result.sort_by(|a, b| (strategy.comparer)(*a, *b));
+
+    if let Some(limit) = strategy.limit {
+        result.truncate(limit);
+    }
+
+    Ok(result
+        .into_iter()
+        .map(ProcessSnapshot::from_process)
+        .collect())
 }
 
 lazy_static! {
@@ -262,6 +575,7 @@ lazy_static! {
         "os_kernel_version",
         "os_name",
         "os_version",
+        "process",
     ];
     // THE CODE ABOVE IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
 }
@@ -289,20 +603,29 @@ mod tests {
             let start = Utc::now();
             let result = query_info(request);
             let end = Utc::now();
-            println!("DEVICE: {:?}", DEVICE.lock().unwrap());
+            // println!("DEVICE: {:?}", DEVICE.get());
             println!("Time consumed: {} ms", (end - start).num_milliseconds());
             assert!(result.is_ok());
         }
         #[cfg(not(feature = "web-api"))]
         {
             init().unwrap();
-            assert!(query_device().unwrap().cpu.package_temperature.is_some());
+            assert!(query_device().is_ok());
         }
     }
 
     #[test]
     fn test_query_generator() {
         init().unwrap();
-        println!("{:?}", DEVICE.lock().unwrap().cpu.query("cpu_name", None));
+        println!(
+            "{:?}",
+            DEVICE
+                .get()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .cpu
+                .query("cpu_name", None)
+        );
     }
 }
