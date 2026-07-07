@@ -18,7 +18,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::thread;
 use std::time::Duration;
 use sysinfo::Process;
@@ -317,6 +317,32 @@ impl Device {
             .map_err(|e| anyhow!(e.to_string()))?
             .shutdown()
     }
+
+    fn query_process(
+        &self,
+        strategy: ConditionQueryStrategy<Process>,
+    ) -> Result<Vec<ProcessSnapshot>> {
+        let cross_platform_updater = self
+            .cross_platform_updater
+            .lock()
+            .map_err(|e| anyhow!(e.to_string()))?;
+        let source = cross_platform_updater.get_process();
+        let mut result: Vec<&Process> = source
+            .iter()
+            .copied()
+            .filter(|e| (strategy.keep)(*e))
+            .collect();
+        result.sort_by(|a, b| (strategy.comparer)(*a, *b));
+
+        if let Some(limit) = strategy.limit {
+            result.truncate(limit);
+        }
+
+        Ok(result
+            .into_iter()
+            .map(ProcessSnapshot::from_process)
+            .collect())
+    }
 }
 
 fn handle_update<U: Updater + ?Sized>(
@@ -357,60 +383,40 @@ impl fmt::Debug for Device {
     }
 }
 
-static DEVICE: OnceLock<Arc<Mutex<Device>>> = OnceLock::new();
+static DEVICE: OnceLock<Arc<RwLock<Device>>> = OnceLock::new();
 
-pub fn query_device() -> Result<MutexGuard<'static, Device>> {
+pub fn query_device<T>(f: impl FnOnce(&Device) -> T) -> Result<T> {
     if DEVICE.get().is_none() {
         init()?;
     }
 
-    DEVICE
+    let device = DEVICE
         .get()
         .ok_or_else(|| anyhow!("Device is not initialized"))?
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))
+        .read()
+        .map_err(|e| anyhow!(e.to_string()))?;
+
+    Ok(f(&*device))
 }
 
 #[instrument]
 #[cfg(any(feature = "web-api", feature = "native-api"))]
 pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
     debug!("Query Request: {:?}", request);
-    if DEVICE.get().is_none() {
-        init()?;
-    }
 
-    // if request.target == "process" {
-    //     return match model::process_query(request.parameter.as_ref()) {
-    //         QueryResult::Found(Some(value)) => Ok(PayLoad {
-    //             value,
-    //             addition: None,
-    //         }),
-    //         QueryResult::Found(None) => Err(anyhow::anyhow!(
-    //             "No data available for target: {}",
-    //             request.target
-    //         )),
-    //         QueryResult::NotFound => {
-    //             Err(anyhow::anyhow!("Unknown query target: {}", request.target))
-    //         }
-    //     };
-    // }
-    //
-    // if QUERY_STATEMENTS.contains(&request.target.as_str()) {
-    let device = query_device()?;
-    match QueryField::query(&device.model, request.target.as_str(), &request.parameter) {
-        QueryResult::Found(Some(value)) => Ok(PayLoad {
-            value,
-            addition: None,
-        }),
-        QueryResult::Found(None) => Err(anyhow::anyhow!(
-            "No data available for target: {}",
-            request.target
-        )),
-        QueryResult::NotFound => Err(anyhow::anyhow!("Unknown query target: {}", request.target)),
-    }
-    // } else {
-    //     Err(anyhow::anyhow!("Unknown query target: {}", request.target))
-    // }
+    query_device(|device| {
+        match QueryField::query(&device.model, request.target.as_str(), &request.parameter) {
+            QueryResult::Found(Some(value)) => Ok(PayLoad {
+                value,
+                addition: None,
+            }),
+            QueryResult::Found(None) => Err(anyhow::anyhow!(
+                "No data available for target: {}",
+                request.target
+            )),
+            QueryResult::NotFound => Err(anyhow::anyhow!("Unknown query target: {}", request.target)),
+        }
+    })?
 }
 
 pub fn init() -> Result<()> {
@@ -438,7 +444,7 @@ pub fn init() -> Result<()> {
     let mut device = Device::new(manager.clone(), general_manager.clone());
     device.update_once();
 
-    if DEVICE.set(Arc::new(Mutex::new(device))).is_err() {
+    if DEVICE.set(Arc::new(RwLock::new(device))).is_err() {
         return Ok(());
     }
 
@@ -446,7 +452,7 @@ pub fn init() -> Result<()> {
     thread::spawn(move || {
         while get_running_flag() {
             {
-                let mut device = device_normal.lock().unwrap();
+                let mut device = device_normal.write().unwrap();
                 device.update();
             }
             thread::sleep(Duration::from_millis(500));
@@ -457,7 +463,7 @@ pub fn init() -> Result<()> {
     thread::spawn(move || {
         while get_running_flag() {
             {
-                let mut device = device_slow.lock().unwrap();
+                let mut device = device_slow.write().unwrap();
                 device.update_slow();
             }
             thread::sleep(Duration::from_millis(10000));
@@ -470,7 +476,7 @@ pub fn init() -> Result<()> {
 pub fn shutdown() -> Result<()> {
     if let Some(device) = DEVICE.get() {
         return device
-            .lock()
+            .write()
             .map_err(|e| anyhow!(e.to_string()))?
             .shutdown();
     }
@@ -497,27 +503,7 @@ impl Default for ConditionQueryStrategy<Process> {
 }
 
 pub fn query_process(strategy: ConditionQueryStrategy<Process>) -> Result<Vec<ProcessSnapshot>> {
-    let device = query_device()?;
-    let cross_platform_updater = device
-        .cross_platform_updater
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))?;
-    let source = cross_platform_updater.get_process();
-    let mut result: Vec<&Process> = source
-        .iter()
-        .copied()
-        .filter(|e| (strategy.keep)(*e))
-        .collect();
-    result.sort_by(|a, b| (strategy.comparer)(*a, *b));
-
-    if let Some(limit) = strategy.limit {
-        result.truncate(limit);
-    }
-
-    Ok(result
-        .into_iter()
-        .map(ProcessSnapshot::from_process)
-        .collect())
+    query_device(|device| device.query_process(strategy))?
 }
 
 lazy_static! {
@@ -608,7 +594,7 @@ mod tests {
         #[cfg(not(feature = "web-api"))]
         {
             init().unwrap();
-            assert!(query_device().is_ok());
+            assert!(query_device(|_| ()).is_ok());
         }
     }
 
@@ -620,10 +606,41 @@ mod tests {
             DEVICE
                 .get()
                 .unwrap()
-                .lock()
+                .read()
                 .unwrap()
                 .cpu
                 .query("cpu_name", &None)
         );
+    }
+
+    #[test]
+    fn test_query_process_inside_query_device() {
+        init().unwrap();
+
+        let result = query_device(|_device| {
+            query_process(ConditionQueryStrategy::default())
+        });
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    #[cfg(any(feature = "web-api", feature = "native-api"))]
+    fn test_query_info_process() {
+        use chrono::Utc;
+
+        init().unwrap();
+
+        let request = QueryRequest {
+            target: "os_process".to_string(),
+            parameter: None,
+        };
+
+        let start = Utc::now();
+        let result = query_info(request);
+        let end = Utc::now();
+
+        println!("Time consumed: {} ms", (end - start).num_milliseconds());
+        assert!(result.is_ok());
     }
 }

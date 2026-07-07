@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use log::debug;
 use crate::monitor::{ConditionQueryStrategy, QueryResult, query_process};
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
@@ -47,21 +48,23 @@ pub struct System {
     pub host_name: Option<String>,
     #[query(key = "os_activated")]
     pub is_activated: Option<bool>,
-    #[query(key = "os_process", function = "get_process")]
+    #[query(key = "os_process", function = "get_os_process")]
     pub process: VirtualDevice,
 }
 
 impl System {
-    fn get_process(&self, attach: &Option<InfoMap>) -> QueryResult {
-        process_query(attach)
+    fn get_os_process(&self, attach: &Option<InfoMap>) -> QueryResult {
+        os_process_query(attach)
     }
 }
 
-pub(crate) fn process_query(attach: &Option<InfoMap>) -> QueryResult {
+pub(crate) fn os_process_query(attach: &Option<InfoMap>) -> QueryResult {
     let strategy = process_strategy(attach);
 
     match query_process(strategy) {
-        Ok(processes) => QueryResult::Found(Some(DataContainer::from(processes))),
+        Ok(processes) => {
+            QueryResult::Found(Some(DataContainer::from(processes)))
+        },
         Err(_) => QueryResult::Found(None),
     }
 }
