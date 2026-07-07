@@ -40,7 +40,7 @@ mod windows;
 
 // #[allow(unused)]
 pub trait QueryField {
-    fn query(&self, key: &str, attach: Option<&InfoMap>) -> QueryResult;
+    fn query(&self, key: &str, attach: &Option<InfoMap>) -> QueryResult;
 }
 
 /// the option inside Found means whether finding the corresponding field or not
@@ -379,40 +379,38 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
         init()?;
     }
 
-    if request.target == "process" {
-        return match crate::monitor::model::process_query(request.parameter.as_ref()) {
-            QueryResult::Found(Some(value)) => Ok(PayLoad {
-                value,
-                addition: None,
-            }),
-            QueryResult::Found(None) => Err(anyhow::anyhow!(
-                "No data available for target: {}",
-                request.target
-            )),
-            QueryResult::NotFound => {
-                Err(anyhow::anyhow!("Unknown query target: {}", request.target))
-            }
-        };
+    // if request.target == "process" {
+    //     return match model::process_query(request.parameter.as_ref()) {
+    //         QueryResult::Found(Some(value)) => Ok(PayLoad {
+    //             value,
+    //             addition: None,
+    //         }),
+    //         QueryResult::Found(None) => Err(anyhow::anyhow!(
+    //             "No data available for target: {}",
+    //             request.target
+    //         )),
+    //         QueryResult::NotFound => {
+    //             Err(anyhow::anyhow!("Unknown query target: {}", request.target))
+    //         }
+    //     };
+    // }
+    //
+    // if QUERY_STATEMENTS.contains(&request.target.as_str()) {
+    let device = query_device()?;
+    match QueryField::query(&device.model, request.target.as_str(), &request.parameter) {
+        QueryResult::Found(Some(value)) => Ok(PayLoad {
+            value,
+            addition: None,
+        }),
+        QueryResult::Found(None) => Err(anyhow::anyhow!(
+            "No data available for target: {}",
+            request.target
+        )),
+        QueryResult::NotFound => Err(anyhow::anyhow!("Unknown query target: {}", request.target)),
     }
-
-    if QUERY_STATEMENTS.contains(&request.target.as_str()) {
-        let device = query_device()?;
-        match QueryField::query(&device.model, request.target.as_str(), None) {
-            QueryResult::Found(Some(value)) => Ok(PayLoad {
-                value,
-                addition: None,
-            }),
-            QueryResult::Found(None) => Err(anyhow::anyhow!(
-                "No data available for target: {}",
-                request.target
-            )),
-            QueryResult::NotFound => {
-                Err(anyhow::anyhow!("Unknown query target: {}", request.target))
-            }
-        }
-    } else {
-        Err(anyhow::anyhow!("Unknown query target: {}", request.target))
-    }
+    // } else {
+    //     Err(anyhow::anyhow!("Unknown query target: {}", request.target))
+    // }
 }
 
 pub fn init() -> Result<()> {
@@ -625,7 +623,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .cpu
-                .query("cpu_name", None)
+                .query("cpu_name", &None)
         );
     }
 }

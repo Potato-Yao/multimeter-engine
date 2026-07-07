@@ -191,7 +191,7 @@ pub fn query_generator(input: TokenStream) -> TokenStream {
 
     let full_statement = quote! {
         impl crate::monitor::QueryField for #struct_name {
-            fn query(&self, key: &str, attach: Option<&crate::util::info_map::InfoMap>) -> crate::monitor::QueryResult {
+            fn query(&self, key: &str, attach: &Option<crate::util::info_map::InfoMap>) -> crate::monitor::QueryResult {
                 match key {
                     #(#item_statements)*
                     _ => {}

@@ -52,12 +52,12 @@ pub struct System {
 }
 
 impl System {
-    fn get_process(&self, attach: Option<&InfoMap>) -> QueryResult {
+    fn get_process(&self, attach: &Option<InfoMap>) -> QueryResult {
         process_query(attach)
     }
 }
 
-pub(crate) fn process_query(attach: Option<&InfoMap>) -> QueryResult {
+pub(crate) fn process_query(attach: &Option<InfoMap>) -> QueryResult {
     let strategy = process_strategy(attach);
 
     match query_process(strategy) {
@@ -66,7 +66,7 @@ pub(crate) fn process_query(attach: Option<&InfoMap>) -> QueryResult {
     }
 }
 
-fn process_strategy(attach: Option<&InfoMap>) -> ConditionQueryStrategy<Process> {
+fn process_strategy(attach: &Option<InfoMap>) -> ConditionQueryStrategy<Process> {
     let mut strategy = ConditionQueryStrategy::default();
     let Some(attach) = attach else {
         return strategy;
