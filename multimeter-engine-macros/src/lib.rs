@@ -9,7 +9,7 @@ use syn::{Data, DeriveInput, Fields, Ident, LitStr, parse_macro_input};
 ///     fn query(
 ///         &self,
 ///         key: &str,
-///         attach: Option<&crate::util::info_map::InfoMap>,
+///         attach: &Option<crate::util::info_map::InfoMap>,
 ///     ) -> crate::monitor::QueryResult {
 ///         match key {
 ///             "os_name" => {
@@ -62,7 +62,7 @@ use syn::{Data, DeriveInput, Fields, Ident, LitStr, parse_macro_input};
 ///     fn query(
 ///         &self,
 ///         key: &str,
-///         attach: Option<&crate::util::info_map::InfoMap>,
+///         attach: &Option<crate::util::info_map::InfoMap>,
 ///     ) -> crate::monitor::QueryResult {
 ///         match key {
 ///             _ => {}
