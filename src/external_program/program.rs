@@ -239,6 +239,12 @@ mod tests {
     }
 
     #[test]
+    fn test_fail_command() {
+        let mut p = Program::new_command("asdfghjklzxcvbnm"); // I don't think there exist a command called this
+        assert!(p.start(None).is_err());
+    }
+
+    #[test]
     fn test_external_tool() {
         let mut p = Program::new_external_tool("ui-sample");
 

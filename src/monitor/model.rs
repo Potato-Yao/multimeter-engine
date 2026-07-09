@@ -1,11 +1,27 @@
 #![allow(dead_code)]
 
-use log::debug;
-use crate::monitor::{ConditionQueryStrategy, QueryResult, query_process};
+use crate::monitor::{query_process, ConditionQueryStrategy, QueryResult};
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 use multimeter_engine_macros::QueryGenerator;
 use sysinfo::Process;
+
+#[derive(Debug, Clone)]
+pub enum SystemPackageManager {
+    Apt,
+    Dnf,
+    Pacman,
+}
+
+impl From<SystemPackageManager> for DataContainer {
+    fn from(value: SystemPackageManager) -> Self {
+        match value {
+            SystemPackageManager::Apt => DataContainer::from("apt"),
+            SystemPackageManager::Dnf => DataContainer::from("dnf"),
+            SystemPackageManager::Pacman => DataContainer::from("pacman"),
+        }
+    }
+}
 
 #[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct Model {
@@ -46,6 +62,8 @@ pub struct System {
     pub kernel_version: Option<String>,
     #[query(key = "os_host_name")]
     pub host_name: Option<String>,
+    #[query(key = "os_package_manager")]
+    pub package_manager: Option<SystemPackageManager>,
     #[query(key = "os_activated")]
     pub is_activated: Option<bool>,
     #[query(key = "os_process", function = "get_os_process")]
