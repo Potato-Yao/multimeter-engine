@@ -42,7 +42,7 @@ impl Program {
     }
 
     /// command is which once been called will execute automatically and finish itself after everything has done.
-    /// command will run on bash on linux, cmd on windows
+    /// command will run on bash on linux, cmd on Windows
     pub fn new_command<T>(start_command: T) -> Self
     where
         T: AsRef<OsStr>,

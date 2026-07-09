@@ -5,6 +5,8 @@ use crate::monitor::model::Model;
 #[cfg(target_os = "linux")]
 use crate::monitor::model::SystemPackageManager;
 use anyhow::Result;
+#[cfg(target_os = "linux")]
+use serde::Deserialize;
 use starship_battery::{Battery, Manager, State};
 use std::sync::{Arc, Mutex};
 use sysinfo::{Process, System};
@@ -122,29 +124,17 @@ impl CrossPlatform {
             device.system.package_manager = None;
         }
 
-        // see https://github.com/chef/os_release for relationship between distribution and os name
+        // see https://github.com/chef/os_release for relationship between distro and os name
         #[cfg(target_os = "linux")]
         {
-            if let Some(os_name) = &device.system.os_name {
-                let os_name = os_name.to_lowercase();
-
-                if os_name.contains("arch") {
-                    device.system.package_manager = Some(SystemPackageManager::Pacman);
-                    return;
-                }
-
-                if os_name.contains("cent os") || os_name.contains("fedora") {
-                    device.system.package_manager = Some(SystemPackageManager::Dnf);
-                    return;
-                }
-
-                if os_name.contains("ubuntu")
-                    || os_name.contains("kali")
-                    || os_name.contains("debian")
-                {
-                    device.system.package_manager = Some(SystemPackageManager::Apt);
-                    return;
-                }
+            if let Some(package_manager) = device
+                .system
+                .os_name
+                .as_deref()
+                .and_then(detect_package_manager_by_os_name)
+            {
+                device.system.package_manager = Some(package_manager);
+                return;
             }
 
             device.system.package_manager = detect_package_manager_by_command();
@@ -153,17 +143,51 @@ impl CrossPlatform {
 }
 
 #[cfg(target_os = "linux")]
-fn detect_package_manager_by_command() -> Option<SystemPackageManager> {
-    let package_managers = [
-        ("apt", SystemPackageManager::Apt),
-        ("dnf", SystemPackageManager::Dnf),
-        ("pacman", SystemPackageManager::Pacman),
-    ];
+#[derive(Deserialize)]
+struct PackageManagerConfig {
+    os_name: Vec<PackageManagerOsNameRule>,
+    command: Vec<PackageManagerCommandRule>,
+}
 
-    for (command, package_manager) in package_managers {
-        let mut program = Program::new_command(command).args(["--version"]);
+#[cfg(target_os = "linux")]
+#[derive(Deserialize)]
+struct PackageManagerOsNameRule {
+    contains: Vec<String>,
+    package_manager: String,
+}
+
+#[cfg(target_os = "linux")]
+#[derive(Deserialize)]
+struct PackageManagerCommandRule {
+    program: String,
+    args: Vec<String>,
+    package_manager: String,
+}
+
+#[cfg(target_os = "linux")]
+fn package_manager_config() -> Option<PackageManagerConfig> {
+    toml::from_str(include_str!("package_managers.toml")).ok()
+}
+
+#[cfg(target_os = "linux")]
+fn detect_package_manager_by_os_name(os_name: &str) -> Option<SystemPackageManager> {
+    let os_name = os_name.to_lowercase();
+
+    package_manager_config()?.os_name.into_iter().find_map(|rule| {
+        if rule.contains.iter().any(|name| os_name.contains(name)) {
+            SystemPackageManager::try_from(rule.package_manager.as_str()).ok()
+        } else {
+            None
+        }
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn detect_package_manager_by_command() -> Option<SystemPackageManager> {
+    for rule in package_manager_config()?.command {
+        let mut program = Program::new_command(&rule.program).args(rule.args);
         if program.start(Some(0)).is_ok() && !program.read().unwrap_or_default().trim().is_empty() {
-            return Some(package_manager);
+            return SystemPackageManager::try_from(rule.package_manager.as_str()).ok();
         }
     }
 

@@ -23,6 +23,19 @@ impl From<SystemPackageManager> for DataContainer {
     }
 }
 
+impl TryFrom<&str> for SystemPackageManager {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "apt" => Ok(SystemPackageManager::Apt),
+            "dnf" => Ok(SystemPackageManager::Dnf),
+            "pacman" => Ok(SystemPackageManager::Pacman),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct Model {
     #[query(nest)]

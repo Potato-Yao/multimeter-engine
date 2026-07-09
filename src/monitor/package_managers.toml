@@ -1,0 +1,26 @@
+[[os_name]]
+contains = ["arch"]
+package_manager = "pacman"
+
+[[os_name]]
+contains = ["cent os", "fedora"]
+package_manager = "dnf"
+
+[[os_name]]
+contains = ["ubuntu", "kali", "debian"]
+package_manager = "apt"
+
+[[command]]
+program = "apt"
+args = ["--version"]
+package_manager = "apt"
+
+[[command]]
+program = "dnf"
+args = ["--version"]
+package_manager = "dnf"
+
+[[command]]
+program = "pacman"
+args = ["--version"]
+package_manager = "pacman"
