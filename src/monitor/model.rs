@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::monitor::{query_process, ConditionQueryStrategy, QueryResult};
+use crate::monitor::{ConditionQueryStrategy, QueryResult, query_process};
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 use multimeter_engine_macros::QueryGenerator;
@@ -80,9 +80,7 @@ pub(crate) fn os_process_query(attach: &Option<InfoMap>) -> QueryResult {
     let strategy = process_strategy(attach);
 
     match query_process(strategy) {
-        Ok(processes) => {
-            QueryResult::Found(Some(DataContainer::from(processes)))
-        },
+        Ok(processes) => QueryResult::Found(Some(DataContainer::from(processes))),
         Err(_) => QueryResult::Found(None),
     }
 }

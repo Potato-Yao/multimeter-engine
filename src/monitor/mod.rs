@@ -330,9 +330,9 @@ impl Device {
         let mut result: Vec<&Process> = source
             .iter()
             .copied()
-            .filter(|e| (strategy.keep)(*e))
+            .filter(|e| (strategy.keep)(e))
             .collect();
-        result.sort_by(|a, b| (strategy.comparer)(*a, *b));
+        result.sort_by(|a, b| (strategy.comparer)(a, b));
 
         if let Some(limit) = strategy.limit {
             result.truncate(limit);
@@ -396,7 +396,7 @@ pub fn query_device<T>(f: impl FnOnce(&Device) -> T) -> Result<T> {
         .read()
         .map_err(|e| anyhow!(e.to_string()))?;
 
-    Ok(f(&*device))
+    Ok(f(&device))
 }
 
 #[instrument]
@@ -414,7 +414,9 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
                 "No data available for target: {}",
                 request.target
             )),
-            QueryResult::NotFound => Err(anyhow::anyhow!("Unknown query target: {}", request.target)),
+            QueryResult::NotFound => {
+                Err(anyhow::anyhow!("Unknown query target: {}", request.target))
+            }
         }
     })?
 }
@@ -559,7 +561,6 @@ lazy_static! {
         "os_kernel_version",
         "os_name",
         "os_version",
-        "process",
     ];
     // THE CODE ABOVE IS SCRIPT GENERATED, DON'T CHANGE THEM DIRECTLY! CHANGE THE SCRIPT sensor_map.py INSTEAD
 }
@@ -617,9 +618,7 @@ mod tests {
     fn test_query_process_inside_query_device() {
         init().unwrap();
 
-        let result = query_device(|_device| {
-            query_process(ConditionQueryStrategy::default())
-        });
+        let result = query_device(|_device| query_process(ConditionQueryStrategy::default()));
 
         assert!(result.is_ok());
     }
