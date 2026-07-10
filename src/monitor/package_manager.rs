@@ -1,15 +1,20 @@
-use serde::Deserialize;
 use crate::external_program::program::Program;
 use crate::util::data_container::DataContainer;
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::io::Write;
+use std::path::PathBuf;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PackageManagerType {
     Apt,
     Dnf,
     Pacman,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize)]
 pub struct Package {
     name: String,
     version: String,
@@ -18,18 +23,108 @@ pub struct Package {
 #[derive(Default, Debug, Clone)]
 pub struct PackageManager {
     pub manager_type: Option<PackageManagerType>,
-    user_packages: Vec<Package>,
+    user_packages: Option<Vec<Package>>,
 }
 
 impl PackageManager {
     pub fn new() -> Self {
         Self {
             manager_type: seek_packager_manager_type(),
-            user_packages: Vec::new(),
+            user_packages: None,
         }
+    }
+
+    pub fn detect_package(&mut self) -> Result<()> {
+        let manager_type = self
+            .manager_type
+            .as_ref()
+            .context("No package manager detected")?;
+
+        let command = match manager_type {
+            PackageManagerType::Dnf => {
+                "dnf repoquery --installed --queryformat '%{name} %{version} %{reason}\n' | grep User"
+            }
+            PackageManagerType::Apt => {
+                "apt-mark showmanual | xargs -r dpkg-query -W -f='${binary:Package} ${Version}\n'"
+            }
+            _ => return Ok(()),
+        };
+
+        let mut program = Program::new_command("bash").args(["-c", command]);
+
+        program.start(Some(0))?;
+        let output = program.read()?;
+
+        // output of apt and dnf follows same format. see doc/package_manager.md for sample
+        let packages: Vec<Package> = output
+            .lines()
+            .filter_map(|line| {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    Some(Package {
+                        name: parts[0].to_string(),
+                        version: parts[1].to_string(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        self.user_packages = Some(packages);
+        Ok(())
+    }
+
+    pub fn import_package_record(&mut self, filename: &str) -> Result<()> {
+        Ok(())
+    }
+
+    pub fn export_package_record(&self, filename: Option<&str>) -> Result<()> {
+        let packages = self
+            .user_packages
+            .as_ref()
+            .context("no user packages detected, run detect_package() first")?;
+
+        let path = match filename {
+            Some(name) => {
+                let mut path = std::path::PathBuf::from(name);
+                if path.extension().is_none() {
+                    path.set_extension("toml");
+                }
+                path
+            }
+            None => {
+                let manager_type = self
+                    .manager_type
+                    .as_ref()
+                    .context("no package manager detected")?;
+                PathBuf::from(format!(
+                    "{}_install_package.toml",
+                    String::from(manager_type)
+                ))
+            }
+        };
+
+        let mut record: HashMap<&str, &[Package]> = HashMap::new();
+        record.insert("package", packages.as_slice());
+        let toml_content =
+            toml::to_string(&record).context("failed to serialize package record to TOML")?;
+
+        let mut file = fs::File::create(&path)
+            .with_context(|| format!("failed to create file {}", path.display()))?;
+        file.write_all(toml_content.as_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn export_package_install_list(&self, filename: &str) -> Result<()> {
+        Ok(())
     }
 }
 
+/// return package manager for the system
+/// for windows and macOS, it will be None. for those linux distro that use apt as package manager, it returns apt, same to dnf and pacman.
+/// see [package_managers.toml] for the relationship definition
 fn seek_packager_manager_type() -> Option<PackageManagerType> {
     #[cfg(not(target_os = "linux"))]
     {
@@ -57,13 +152,16 @@ fn package_manager_config() -> Option<PackageManagerConfig> {
 fn detect_package_manager_by_os_name(os_name: &str) -> Option<PackageManagerType> {
     let os_name = os_name.to_lowercase();
 
-    package_manager_config()?.os_name.into_iter().find_map(|rule| {
-        if rule.contains.iter().any(|name| os_name.contains(name)) {
-            PackageManagerType::try_from(rule.package_manager.as_str()).ok()
-        } else {
-            None
-        }
-    })
+    package_manager_config()?
+        .os_name
+        .into_iter()
+        .find_map(|rule| {
+            if rule.contains.iter().any(|name| os_name.contains(name)) {
+                PackageManagerType::try_from(rule.package_manager.as_str()).ok()
+            } else {
+                None
+            }
+        })
 }
 
 #[cfg(target_os = "linux")]
@@ -100,8 +198,8 @@ struct PackageManagerCommandRule {
     package_manager: String,
 }
 
-impl From<PackageManagerType> for String {
-    fn from(value: PackageManagerType) -> Self {
+impl From<&PackageManagerType> for String {
+    fn from(value: &PackageManagerType) -> Self {
         match value {
             PackageManagerType::Apt => "apt".to_string(),
             PackageManagerType::Dnf => "dnf".to_string(),
@@ -135,23 +233,27 @@ impl TryFrom<&str> for PackageManagerType {
 
 #[cfg(target_os = "linux")]
 pub fn get_os_name() -> Option<String> {
+    // https://www.linux.org/docs/man5/os-release.html
     let content = std::fs::read_to_string("/etc/os-release").ok()?;
-    content
-        .lines()
-        .find_map(|line| {
-            let line = line.trim();
-            line.strip_prefix("NAME=")
-                .map(|v| v.trim().trim_matches(|c| c == '"' || c == '\'').to_string())
-        })
+    content.lines().find_map(|line| {
+        let line = line.trim();
+        line.strip_prefix("NAME=")
+            .map(|v| v.trim().trim_matches(|c| c == '"' || c == '\'').to_string())
+    })
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[cfg(target_os = "linux")]
     #[test]
     fn test_get_os_name() {
-        let os_name = super::get_os_name();
-        assert!(os_name.is_some(), "get_os_name() should return Some on Linux");
+        let os_name = get_os_name();
+        assert!(
+            os_name.is_some(),
+            "get_os_name() should return Some on Linux"
+        );
         let name = os_name.unwrap();
         assert!(!name.is_empty(), "OS name should not be empty");
         println!("detected OS name: {name}");
@@ -160,19 +262,92 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn test_seek_packager_manager_type() {
-        let result = super::seek_packager_manager_type();
+        let result = seek_packager_manager_type();
         assert!(result.is_some(), "should detect a package manager on Linux");
         println!("detected package manager: {:?}", result.unwrap());
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
-    fn test_package_manager_type_into_string() {
-        let apt: String = super::PackageManagerType::Apt.into();
-        let dnf: String = super::PackageManagerType::Dnf.into();
-        let pacman: String = super::PackageManagerType::Pacman.into();
+    fn test_detect_package() {
+        let mut manager = PackageManager::new();
 
-        assert_eq!(apt, "apt");
-        assert_eq!(dnf, "dnf");
-        assert_eq!(pacman, "pacman");
+        // to test on fedora
+        if manager.manager_type == Some(PackageManagerType::Dnf) {
+            manager.detect_package().unwrap();
+            let packages = manager.user_packages.as_ref().unwrap();
+            assert!(
+                !packages.is_empty(),
+                "should detect at least one user package"
+            );
+            println!("detected {} user packages", packages.len());
+        }
+    }
+
+    fn make_manager() -> PackageManager {
+        PackageManager {
+            manager_type: Some(PackageManagerType::Apt),
+            user_packages: Some(vec![
+                Package {
+                    name: "vim".to_string(),
+                    version: "2:9.1.0".to_string(),
+                },
+                Package {
+                    name: "htop".to_string(),
+                    version: "3.3.0".to_string(),
+                },
+            ]),
+        }
+    }
+
+    #[test]
+    fn test_export_package_record_with_filename() {
+        let manager = make_manager();
+        let path = PathBuf::from("test_export_packages.toml");
+
+        manager
+            .export_package_record(Some(path.to_str().unwrap()))
+            .unwrap();
+
+        let content = fs::read_to_string(&path).unwrap();
+        let _ = fs::remove_file(&path);
+
+        assert!(content.contains("[[package]]"));
+        assert!(content.contains("name = \"vim\""));
+        assert!(content.contains("version = \"2:9.1.0\""));
+        assert!(content.contains("name = \"htop\""));
+        assert!(content.contains("version = \"3.3.0\""));
+    }
+
+    #[test]
+    fn test_export_package_record_default_filename() {
+        let manager = make_manager();
+        let expected_path = std::path::PathBuf::from("apt_install_package.toml");
+
+        assert!(!expected_path.exists());
+        manager.export_package_record(None).unwrap();
+        assert!(
+            expected_path.exists(),
+            "default-named file should be created"
+        );
+
+        let content = fs::read_to_string(&expected_path).unwrap();
+        let _ = fs::remove_file(&expected_path);
+
+        assert!(content.contains("[[package]]"));
+        assert!(content.contains("name = \"vim\""));
+        assert!(content.contains("name = \"htop\""));
+    }
+
+    #[test]
+    fn test_export_package_record_no_packages() {
+        let manager = PackageManager {
+            manager_type: Some(PackageManagerType::Apt),
+            user_packages: None,
+        };
+
+        let result = manager.export_package_record(Some("should_not_exist.toml"));
+        assert!(result.is_err());
+        assert!(!std::path::Path::new("should_not_exist.toml").exists());
     }
 }
