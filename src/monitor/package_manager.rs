@@ -136,7 +136,50 @@ impl PackageManager {
         Ok(())
     }
 
-    pub fn export_package_install_list(&self, filename: &str) -> Result<()> {
+    pub fn export_package_install_list(
+        &self,
+        filename: Option<&str>,
+        manager_type: PackageManagerType,
+    ) -> Result<()> {
+        match manager_type {
+            PackageManagerType::Apt | PackageManagerType::Dnf => {
+                self.export_package_install_list_inner(filename, |pkg| pkg.name.clone())
+            }
+            PackageManagerType::Pacman => Ok(()),
+        }
+    }
+
+    fn export_package_install_list_inner(
+        &self,
+        filename: Option<&str>,
+        deserializer: impl Fn(&Package) -> String,
+    ) -> Result<()> {
+        let packages = self
+            .user_packages
+            .as_ref()
+            .context("no user packages detected, run detect_package() first")?;
+
+        let path = match filename {
+            Some(name) => {
+                let mut path = PathBuf::from(name);
+                if path.extension().is_none() {
+                    path.set_extension("txt");
+                }
+                path
+            }
+            None => {
+                let ts = Local::now().format("%Y-%m-%d-%H-%M-%S").to_string();
+                PathBuf::from(format!("package-install-list-{ts}.txt"))
+            }
+        };
+
+        let mut file = fs::File::create(&path)
+            .with_context(|| format!("failed to create file {}", path.display()))?;
+
+        for package in packages {
+            writeln!(file, "{}", deserializer(package))?;
+        }
+
         Ok(())
     }
 }
@@ -466,5 +509,23 @@ mod tests {
         };
         let result = manager.import_package_record(None);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_export_package_install_list_apt_dnf() {
+        let manager = make_manager();
+        let path = "test_install_list_apt.txt";
+
+        manager
+            .export_package_install_list(Some(path), PackageManagerType::Apt)
+            .unwrap();
+
+        let content = fs::read_to_string(path).unwrap();
+        let _ = fs::remove_file(path);
+
+        let lines: Vec<&str> = content.lines().collect();
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0], "vim");
+        assert_eq!(lines[1], "htop");
     }
 }

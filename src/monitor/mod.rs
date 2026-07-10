@@ -35,9 +35,9 @@ pub use self::model::Model;
 #[cfg(target_os = "linux")]
 mod linux;
 
+pub mod package_manager;
 #[cfg(windows)]
 mod windows;
-pub mod package_manager;
 
 // #[allow(unused)]
 pub trait QueryField {
