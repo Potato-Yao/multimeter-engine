@@ -1,12 +1,7 @@
-#[cfg(target_os = "linux")]
-use crate::external_program::program::Program;
 use crate::monitor::Updater;
 use crate::monitor::model::Model;
-#[cfg(target_os = "linux")]
-use crate::monitor::model::SystemPackageManager;
+use crate::monitor::package_manager::PackageManager;
 use anyhow::Result;
-#[cfg(target_os = "linux")]
-use serde::Deserialize;
 use starship_battery::{Battery, Manager, State};
 use std::sync::{Arc, Mutex};
 use sysinfo::{Process, System};
@@ -119,79 +114,8 @@ impl CrossPlatform {
     }
 
     fn update_package_manager(&self, device: &mut Model) {
-        #[cfg(not(target_os = "linux"))]
-        {
-            device.system.package_manager = None;
-        }
-
-        // see https://github.com/chef/os_release for relationship between distro and os name
-        #[cfg(target_os = "linux")]
-        {
-            if let Some(package_manager) = device
-                .system
-                .os_name
-                .as_deref()
-                .and_then(detect_package_manager_by_os_name)
-            {
-                device.system.package_manager = Some(package_manager);
-                return;
-            }
-
-            device.system.package_manager = detect_package_manager_by_command();
-        }
+        device.system.package_manager = PackageManager::new();
     }
-}
-
-#[cfg(target_os = "linux")]
-#[derive(Deserialize)]
-struct PackageManagerConfig {
-    os_name: Vec<PackageManagerOsNameRule>,
-    command: Vec<PackageManagerCommandRule>,
-}
-
-#[cfg(target_os = "linux")]
-#[derive(Deserialize)]
-struct PackageManagerOsNameRule {
-    contains: Vec<String>,
-    package_manager: String,
-}
-
-#[cfg(target_os = "linux")]
-#[derive(Deserialize)]
-struct PackageManagerCommandRule {
-    program: String,
-    args: Vec<String>,
-    package_manager: String,
-}
-
-#[cfg(target_os = "linux")]
-fn package_manager_config() -> Option<PackageManagerConfig> {
-    toml::from_str(include_str!("package_managers.toml")).ok()
-}
-
-#[cfg(target_os = "linux")]
-fn detect_package_manager_by_os_name(os_name: &str) -> Option<SystemPackageManager> {
-    let os_name = os_name.to_lowercase();
-
-    package_manager_config()?.os_name.into_iter().find_map(|rule| {
-        if rule.contains.iter().any(|name| os_name.contains(name)) {
-            SystemPackageManager::try_from(rule.package_manager.as_str()).ok()
-        } else {
-            None
-        }
-    })
-}
-
-#[cfg(target_os = "linux")]
-fn detect_package_manager_by_command() -> Option<SystemPackageManager> {
-    for rule in package_manager_config()?.command {
-        let mut program = Program::new_command(&rule.program).args(rule.args);
-        if program.start(Some(0)).is_ok() && !program.read().unwrap_or_default().trim().is_empty() {
-            return SystemPackageManager::try_from(rule.package_manager.as_str()).ok();
-        }
-    }
-
-    None
 }
 
 #[cfg(test)]

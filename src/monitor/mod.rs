@@ -37,6 +37,7 @@ mod linux;
 
 #[cfg(windows)]
 mod windows;
+pub mod package_manager;
 
 // #[allow(unused)]
 pub trait QueryField {

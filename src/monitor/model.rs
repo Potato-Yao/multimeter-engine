@@ -1,40 +1,11 @@
 #![allow(dead_code)]
 
-use crate::monitor::{ConditionQueryStrategy, QueryResult, query_process};
+use crate::monitor::package_manager::PackageManager;
+use crate::monitor::{query_process, ConditionQueryStrategy, QueryResult};
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 use multimeter_engine_macros::QueryGenerator;
 use sysinfo::Process;
-
-#[derive(Debug, Clone)]
-pub enum SystemPackageManager {
-    Apt,
-    Dnf,
-    Pacman,
-}
-
-impl From<SystemPackageManager> for DataContainer {
-    fn from(value: SystemPackageManager) -> Self {
-        match value {
-            SystemPackageManager::Apt => DataContainer::from("apt"),
-            SystemPackageManager::Dnf => DataContainer::from("dnf"),
-            SystemPackageManager::Pacman => DataContainer::from("pacman"),
-        }
-    }
-}
-
-impl TryFrom<&str> for SystemPackageManager {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "apt" => Ok(SystemPackageManager::Apt),
-            "dnf" => Ok(SystemPackageManager::Dnf),
-            "pacman" => Ok(SystemPackageManager::Pacman),
-            _ => Err(()),
-        }
-    }
-}
 
 #[derive(Default, Debug, Clone, QueryGenerator)]
 pub struct Model {
@@ -75,8 +46,8 @@ pub struct System {
     pub kernel_version: Option<String>,
     #[query(key = "os_host_name")]
     pub host_name: Option<String>,
-    #[query(key = "os_package_manager")]
-    pub package_manager: Option<SystemPackageManager>,
+    #[query(key = "os_package_manager_type", function = "get_os_package_manager_type")]
+    pub package_manager: PackageManager,
     #[query(key = "os_activated")]
     pub is_activated: Option<bool>,
     #[query(key = "os_process", function = "get_os_process")]
@@ -86,6 +57,13 @@ pub struct System {
 impl System {
     fn get_os_process(&self, attach: &Option<InfoMap>) -> QueryResult {
         os_process_query(attach)
+    }
+
+    fn get_os_package_manager_type(&self, _attach: &Option<InfoMap>) -> QueryResult {
+        match self.package_manager.manager_type.as_ref() {
+            Some(t) => QueryResult::Found(Some(DataContainer::from(t.clone()))),
+            None => QueryResult::Found(None),
+        }
     }
 }
 

@@ -14,6 +14,7 @@ pub mod web;
 
 #[cfg(feature = "stress-test")]
 pub mod stress_test;
+pub mod system_migration;
 
 static KEEP_RUNNING: Mutex<bool> = Mutex::new(true);
 
