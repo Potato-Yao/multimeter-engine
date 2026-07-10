@@ -1,7 +1,7 @@
 use crate::external_program::program::Program;
 use crate::util::data_container::DataContainer;
 use anyhow::{Context, Result};
-use chrono::Local;
+use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -15,7 +15,7 @@ pub enum PackageManagerType {
     Pacman,
 }
 
-#[derive(Default, Debug, Clone, Serialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Package {
     name: String,
     version: String,
@@ -76,10 +76,34 @@ impl PackageManager {
         Ok(())
     }
 
-    pub fn import_package_record(&mut self, filename: &str) -> Result<()> {
+    pub fn import_package_record(&mut self, filename: Option<&str>) -> Result<()> {
+        #[derive(Deserialize)]
+        struct PackageRecord {
+            package: Vec<Package>,
+        }
+
+        let path = match filename {
+            Some(name) => {
+                let mut path = PathBuf::from(name);
+                if path.extension().is_none() {
+                    path.set_extension("toml");
+                }
+                path
+            }
+            None => find_latest_package_record()
+                .context("no package record files found in current directory")?,
+        };
+
+        let content = fs::read_to_string(&path)
+            .with_context(|| format!("failed to read file {}", path.display()))?;
+        let record: PackageRecord = toml::from_str(&content)
+            .with_context(|| format!("failed to parse TOML from {}", path.display()))?;
+
+        self.user_packages = Some(record.package);
         Ok(())
     }
 
+    /// if `filename` is none, the export file's name will be `installed-package-record-YYYY-MM-DD-MM-SS.toml`
     pub fn export_package_record(&self, filename: Option<&str>) -> Result<()> {
         let packages = self
             .user_packages
@@ -115,6 +139,32 @@ impl PackageManager {
     pub fn export_package_install_list(&self, filename: &str) -> Result<()> {
         Ok(())
     }
+}
+
+fn find_latest_package_record() -> Option<PathBuf> {
+    let prefix = "installed-package-record-";
+    let suffix = ".toml";
+    let ts_format = "%Y-%m-%d-%H-%M-%S";
+
+    fs::read_dir(".")
+        .ok()?
+        .flatten()
+        .filter_map(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(prefix) && name.ends_with(suffix) {
+                let ts_str = &name[prefix.len()..name.len() - suffix.len()];
+                NaiveDateTime::parse_from_str(ts_str, ts_format)
+                    .ok()
+                    .map(|_| entry.path())
+            } else {
+                None
+            }
+        })
+        .max_by_key(|path| {
+            let name = path.file_name().unwrap().to_string_lossy().to_string();
+            let ts_str = &name[prefix.len()..name.len() - suffix.len()];
+            NaiveDateTime::parse_from_str(ts_str, ts_format).unwrap_or_default()
+        })
 }
 
 /// return package manager for the system
@@ -352,5 +402,69 @@ mod tests {
         let result = manager.export_package_record(Some("should_not_exist.toml"));
         assert!(result.is_err());
         assert!(!std::path::Path::new("should_not_exist.toml").exists());
+    }
+
+    #[test]
+    fn test_import_package_record_with_filename() {
+        let manager = make_manager();
+        let path = "test_import_packages.toml";
+
+        manager.export_package_record(Some(path)).unwrap();
+
+        let mut imported = PackageManager {
+            manager_type: Some(PackageManagerType::Apt),
+            user_packages: None,
+        };
+        imported.import_package_record(Some(path)).unwrap();
+
+        let _ = fs::remove_file(path);
+
+        let packages = imported.user_packages.as_ref().unwrap();
+        assert_eq!(packages.len(), 2);
+        assert_eq!(packages[0].name, "vim");
+        assert_eq!(packages[0].version, "2:9.1.0");
+        assert_eq!(packages[1].name, "htop");
+        assert_eq!(packages[1].version, "3.3.0");
+    }
+
+    #[test]
+    fn test_import_package_record_default_filename() {
+        let manager = make_manager();
+
+        manager.export_package_record(None).unwrap();
+
+        let mut imported = PackageManager {
+            manager_type: Some(PackageManagerType::Apt),
+            user_packages: None,
+        };
+        imported.import_package_record(None).unwrap();
+
+        let ts = Local::now().format("%Y-%m-%d-%H-%M-%S").to_string();
+        let _ = fs::remove_file(format!("installed-package-record-{ts}.toml"));
+
+        let packages = imported.user_packages.as_ref().unwrap();
+        assert_eq!(packages.len(), 2);
+        assert_eq!(packages[0].name, "vim");
+        assert_eq!(packages[1].name, "htop");
+    }
+
+    #[test]
+    fn test_import_package_record_file_not_found() {
+        let mut manager = PackageManager {
+            manager_type: Some(PackageManagerType::Dnf),
+            user_packages: None,
+        };
+        let result = manager.import_package_record(Some("nonexistent.toml"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_import_package_record_no_records() {
+        let mut manager = PackageManager {
+            manager_type: Some(PackageManagerType::Dnf),
+            user_packages: None,
+        };
+        let result = manager.import_package_record(None);
+        assert!(result.is_err());
     }
 }
