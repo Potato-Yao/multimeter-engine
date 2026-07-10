@@ -1,6 +1,7 @@
 use crate::external_program::program::Program;
 use crate::util::data_container::DataContainer;
 use anyhow::{Context, Result};
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -87,21 +88,15 @@ impl PackageManager {
 
         let path = match filename {
             Some(name) => {
-                let mut path = std::path::PathBuf::from(name);
+                let mut path = PathBuf::from(name);
                 if path.extension().is_none() {
                     path.set_extension("toml");
                 }
                 path
             }
             None => {
-                let manager_type = self
-                    .manager_type
-                    .as_ref()
-                    .context("no package manager detected")?;
-                PathBuf::from(format!(
-                    "{}_install_package.toml",
-                    String::from(manager_type)
-                ))
+                let ts = Local::now().format("%Y-%m-%d-%H-%M-%S").to_string();
+                PathBuf::from(format!("installed-package-record-{ts}.toml"))
             }
         };
 
@@ -234,7 +229,7 @@ impl TryFrom<&str> for PackageManagerType {
 #[cfg(target_os = "linux")]
 pub fn get_os_name() -> Option<String> {
     // https://www.linux.org/docs/man5/os-release.html
-    let content = std::fs::read_to_string("/etc/os-release").ok()?;
+    let content = fs::read_to_string("/etc/os-release").ok()?;
     content.lines().find_map(|line| {
         let line = line.trim();
         line.strip_prefix("NAME=")
@@ -322,17 +317,25 @@ mod tests {
     #[test]
     fn test_export_package_record_default_filename() {
         let manager = make_manager();
-        let expected_path = std::path::PathBuf::from("apt_install_package.toml");
+        let ts_prefix = Local::now().format("%Y-%m-%d-%H-%M").to_string();
 
-        assert!(!expected_path.exists());
         manager.export_package_record(None).unwrap();
-        assert!(
-            expected_path.exists(),
-            "default-named file should be created"
-        );
 
-        let content = fs::read_to_string(&expected_path).unwrap();
-        let _ = fs::remove_file(&expected_path);
+        let entries = fs::read_dir(".").unwrap();
+        let mut found: Option<PathBuf> = None;
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(&format!("installed-package-record-{ts_prefix}"))
+                && name.ends_with(".toml")
+            {
+                found = Some(entry.path());
+                break;
+            }
+        }
+        let path = found.expect("default-named file should be created");
+
+        let content = fs::read_to_string(&path).unwrap();
+        let _ = fs::remove_file(&path);
 
         assert!(content.contains("[[package]]"));
         assert!(content.contains("name = \"vim\""));
