@@ -4,6 +4,7 @@ use log::debug;
 use std::ffi::{CStr, CString, c_char};
 
 use std::sync::Mutex;
+pub mod config;
 pub mod external_program;
 pub mod monitor;
 pub mod thread_manager;
