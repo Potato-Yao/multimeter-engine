@@ -8,3 +8,8 @@ port = 6100
 
 [tui]
 enable = false
+
+[system_migration]
+user_package = true
+configuration = true
+home_file = []

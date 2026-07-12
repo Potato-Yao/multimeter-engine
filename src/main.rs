@@ -1,10 +1,10 @@
+mod cli;
+
 use log::{debug, info};
 use multimeter_engine::config::Config;
 use multimeter_engine::engine_init;
 
-fn is_cli_mode() -> bool {
-    std::env::args().skip(1).any(|arg| arg == "--cli")
-}
+use cli::{parse_cli_command, CliCommand};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,9 +17,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("Initializing monitor");
     engine_init()?;
 
-    if is_cli_mode() {
+    if let Some(command) = parse_cli_command() {
         info!("Running in CLI mode; config file is ignored");
-        // todo args handling
+        match command {
+            CliCommand::Migration(migration) => {
+                info!("Migration command: {:?}", migration);
+                // todo implementation
+            }
+        }
     } else {
         let config = Config::load()?;
         info!("Loaded config from {}", Config::config_path()?.display());

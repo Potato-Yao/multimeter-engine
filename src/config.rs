@@ -46,11 +46,29 @@ impl Default for TuiConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemMigrationConfig {
+    pub user_package: bool,
+    pub configuration: bool,
+    pub home_file: Vec<String>,
+}
+
+impl Default for SystemMigrationConfig {
+    fn default() -> Self {
+        Self {
+            user_package: true,
+            configuration: true,
+            home_file: Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     pub tcp: TcpConfig,
     pub http: HttpConfig,
     pub tui: TuiConfig,
+    pub system_migration: SystemMigrationConfig,
 }
 
 impl Config {
