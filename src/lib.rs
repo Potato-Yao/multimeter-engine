@@ -1,4 +1,6 @@
 use anyhow::Result;
+#[cfg(feature = "web-api")]
+use config::Config;
 use log::debug;
 #[cfg(feature = "web-api")]
 use std::ffi::{CStr, CString, c_char};
@@ -30,8 +32,10 @@ pub fn process_command(input: String) -> String {
     }
 }
 
-pub fn engine_init() -> Result<()> {
-    monitor::init()?;
+pub fn engine_init(sensor: bool) -> Result<()> {
+    if sensor {
+        monitor::init()?;
+    }
 
     Ok(())
 }
@@ -39,7 +43,8 @@ pub fn engine_init() -> Result<()> {
 #[unsafe(no_mangle)]
 #[cfg(feature = "web-api")]
 pub extern "C" fn multimeter_init() -> i32 {
-    match engine_init() {
+    let sensor = Config::load().map(|c| c.sensor).unwrap_or(true);
+    match engine_init(sensor) {
         Ok(_) => 0,
         Err(_) => -1,
     }

@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use log::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TcpConfig {
@@ -63,12 +63,25 @@ impl Default for SystemMigrationConfig {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub tcp: TcpConfig,
     pub http: HttpConfig,
     pub tui: TuiConfig,
     pub system_migration: SystemMigrationConfig,
+    pub sensor: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            tcp: TcpConfig::default(),
+            http: HttpConfig::default(),
+            tui: TuiConfig::default(),
+            system_migration: SystemMigrationConfig::default(),
+            sensor: true,
+        }
+    }
 }
 
 impl Config {
@@ -134,8 +147,7 @@ impl Config {
             })?;
         }
 
-        let body = toml::to_string_pretty(self)
-            .context("failed to serialize config to TOML")?;
+        let body = toml::to_string_pretty(self).context("failed to serialize config to TOML")?;
 
         let mut file = fs::File::create(path)
             .with_context(|| format!("failed to create config file {}", path.display()))?;

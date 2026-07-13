@@ -4,7 +4,7 @@ use log::{debug, info};
 use multimeter_engine::config::Config;
 use multimeter_engine::engine_init;
 
-use cli::{parse_cli_command, CliCommand};
+use cli::{CliCommand, parse_cli_command};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,8 +14,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("Starting Multimeter Engine Server");
-    debug!("Initializing monitor");
-    engine_init()?;
+    let config = Config::load()?;
+    info!("Loaded config from {}", Config::config_path()?.display());
+    info!("Sensor enabled: {}", config.sensor);
+
+    debug!("Initializing engine");
+    engine_init(config.sensor)?;
 
     if let Some(command) = parse_cli_command() {
         info!("Running in CLI mode; config file is ignored");
@@ -26,9 +30,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     } else {
-        let config = Config::load()?;
-        info!("Loaded config from {}", Config::config_path()?.display());
-        info!("TCP enabled: {}, port: {}", config.tcp.enable, config.tcp.port);
+        info!(
+            "TCP enabled: {}, port: {}",
+            config.tcp.enable, config.tcp.port
+        );
         info!(
             "HTTP enabled: {}, port: {}",
             config.http.enable, config.http.port
