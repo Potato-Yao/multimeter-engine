@@ -387,9 +387,11 @@ impl fmt::Debug for Device {
 static DEVICE: OnceLock<Arc<RwLock<Device>>> = OnceLock::new();
 
 pub fn query_device<T>(f: impl FnOnce(&Device) -> T) -> Result<T> {
-    if DEVICE.get().is_none() {
-        init()?;
-    }
+    // init should be handled manually. for example, we sometimes disable `sensor` in config file when we don't need those info in some case to improve the performance,
+    // but an accidental request for sensor info seeking will turn on the heavy monitor system. so it should not start automatically.
+    // if DEVICE.get().is_none() {
+    //     init()?;
+    // }
 
     let device = DEVICE
         .get()

@@ -1,15 +1,18 @@
 [tcp]
 enable = true
-port = 6000
+port = 5000
 
 [http]
-enable = true
-port = 6100
+enable = false
+port = 5100
 
 [tui]
-enable = false
+enable = true
 
 [system_migration]
 user_package = true
 configuration = true
 home_file = []
+
+[sensor]
+enable = false

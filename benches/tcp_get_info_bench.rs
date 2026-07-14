@@ -19,8 +19,8 @@ const QUERY_BATCHES: &[&[&str]] = &[
 async fn start_test_server() -> String {
     INIT.call_once(|| {
         let _ = env_logger::builder().is_test(true).try_init();
-        let sensor = Config::load_or_default().map(|c| c.sensor).unwrap_or(true);
-        multimeter_engine::engine_init(sensor).unwrap();
+        let config = Config::load_or_default().unwrap_or_default();
+        multimeter_engine::engine_init(config).unwrap();
     });
 
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();

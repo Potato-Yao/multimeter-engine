@@ -1,7 +1,7 @@
 to send request via `ncat`:
 
 ```bash
-jq -c . <<'EOF' | ncat 127.0.0.1 8080
+jq -c . <<'EOF' | ncat 127.0.0.1 5000
 {
   "version": 1,
   "id": "from_desktop_2",

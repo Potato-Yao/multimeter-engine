@@ -47,6 +47,17 @@ impl Default for TuiConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SensorConfig {
+    pub enable: bool,
+}
+
+impl Default for SensorConfig {
+    fn default() -> Self {
+        Self { enable: true }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemMigrationConfig {
     pub user_package: bool,
     pub configuration: bool,
@@ -69,7 +80,7 @@ pub struct Config {
     pub http: HttpConfig,
     pub tui: TuiConfig,
     pub system_migration: SystemMigrationConfig,
-    pub sensor: bool,
+    pub sensor: SensorConfig,
 }
 
 impl Default for Config {
@@ -79,7 +90,7 @@ impl Default for Config {
             http: HttpConfig::default(),
             tui: TuiConfig::default(),
             system_migration: SystemMigrationConfig::default(),
-            sensor: true,
+            sensor: SensorConfig::default(),
         }
     }
 }

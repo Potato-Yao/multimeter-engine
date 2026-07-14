@@ -8,6 +8,8 @@ pub mod model;
 
 pub mod request_executor;
 
+pub mod server;
+
 pub type ServerState = u32;
 
 pub const SUCCESS_STATE: ServerState = 100;

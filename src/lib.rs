@@ -1,11 +1,17 @@
 use anyhow::Result;
-#[cfg(feature = "web-api")]
 use config::Config;
 use log::debug;
 #[cfg(feature = "web-api")]
+use log::{error, info};
+#[cfg(feature = "web-api")]
 use std::ffi::{CStr, CString, c_char};
-
+#[cfg(feature = "web-api")]
+use std::future::Future;
 use std::sync::Mutex;
+#[cfg(feature = "web-api")]
+use std::sync::OnceLock;
+#[cfg(feature = "web-api")]
+use tokio::runtime::Runtime;
 pub mod config;
 pub mod external_program;
 pub mod monitor;
@@ -21,8 +27,29 @@ pub mod system_migration;
 
 static KEEP_RUNNING: Mutex<bool> = Mutex::new(true);
 
+#[cfg(feature = "web-api")]
+static RUNTIME: OnceLock<Runtime> = OnceLock::new();
+
 pub fn get_running_flag() -> bool {
     *KEEP_RUNNING.lock().unwrap()
+}
+
+#[cfg(feature = "web-api")]
+pub fn runtime() -> &'static Runtime {
+    RUNTIME.get_or_init(|| Runtime::new().expect("failed to create Tokio runtime"))
+}
+
+#[cfg(feature = "web-api")]
+fn spawn_server_task<F>(future: F)
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        handle.spawn(future);
+    } else {
+        runtime().spawn(future);
+    }
 }
 
 #[cfg(any(feature = "web-api", feature = "native-api"))]
@@ -32,9 +59,30 @@ pub fn process_command(input: String) -> String {
     }
 }
 
-pub fn engine_init(sensor: bool) -> Result<()> {
-    if sensor {
+pub fn engine_init(config: Config) -> Result<()> {
+    if config.sensor.enable {
         monitor::init()?;
+    }
+
+    #[cfg(feature = "web-api")]
+    {
+        if config.tcp.enable {
+            let port = config.tcp.port;
+            spawn_server_task(async move {
+                if let Err(e) = web::server::start_tcp_server(port).await {
+                    error!("TCP server error on port {}: {}", port, e);
+                }
+            });
+            info!("TCP server started on port {}", port);
+        }
+
+        if config.http.enable {
+            info!("HTTP server is not implemented yet");
+        }
+    }
+
+    if config.tui.enable {
+        debug!("TUI is not implemented yet");
     }
 
     Ok(())
@@ -43,8 +91,8 @@ pub fn engine_init(sensor: bool) -> Result<()> {
 #[unsafe(no_mangle)]
 #[cfg(feature = "web-api")]
 pub extern "C" fn multimeter_init() -> i32 {
-    let sensor = Config::load().map(|c| c.sensor).unwrap_or(true);
-    match engine_init(sensor) {
+    let config = Config::load().unwrap_or_default();
+    match engine_init(config) {
         Ok(_) => 0,
         Err(_) => -1,
     }
