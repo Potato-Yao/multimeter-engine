@@ -50,6 +50,7 @@ pub trait QueryField {
 pub enum QueryResult {
     Found(Option<DataContainer>),
     NotFound,
+    Error(String),
 }
 
 #[derive(Debug, Clone)]
@@ -115,75 +116,142 @@ impl ProcessSnapshot {
     }
 }
 
-impl From<ProcessSnapshot> for DataContainer {
-    fn from(value: ProcessSnapshot) -> Self {
+impl ProcessSnapshot {
+    const FIELDS: &[&str] = &[
+        "pid",
+        "parent",
+        "name",
+        "cmd",
+        "exe",
+        "cwd",
+        "root",
+        "environ",
+        "status",
+        "start_time",
+        "run_time",
+        "cpu_usage",
+        "memory",
+        "virtual_memory",
+        "total_read_bytes",
+        "read_bytes",
+        "total_written_bytes",
+        "written_bytes",
+    ];
+
+    fn into_data_container(self, select: Option<&[String]>) -> Result<DataContainer, String> {
+        if let Some(select) = select {
+            for field in select {
+                if !Self::FIELDS.contains(&field.as_str()) {
+                    return Err(format!("invalid select member: {}", field));
+                }
+            }
+        }
+
+        let include = |key: &str| select.map_or(true, |select| select.iter().any(|s| s == key));
         let mut data = HashMap::new();
 
-        data.insert("pid".to_string(), DataContainer::from(value.pid as u64));
-        data.insert(
-            "parent".to_string(),
-            value
-                .parent
-                .map(|pid| DataContainer::from(pid as u64))
-                .unwrap_or(DataContainer::Null),
-        );
-        data.insert("name".to_string(), DataContainer::from(value.name));
-        data.insert("cmd".to_string(), DataContainer::from(value.cmd));
-        data.insert(
-            "exe".to_string(),
-            value
-                .exe
-                .map(DataContainer::from)
-                .unwrap_or(DataContainer::Null),
-        );
-        data.insert(
-            "cwd".to_string(),
-            value
-                .cwd
-                .map(DataContainer::from)
-                .unwrap_or(DataContainer::Null),
-        );
-        data.insert(
-            "root".to_string(),
-            value
-                .root
-                .map(DataContainer::from)
-                .unwrap_or(DataContainer::Null),
-        );
-        data.insert("environ".to_string(), DataContainer::from(value.environ));
-        data.insert("status".to_string(), DataContainer::from(value.status));
-        data.insert(
-            "start_time".to_string(),
-            DataContainer::from(value.start_time),
-        );
-        data.insert("run_time".to_string(), DataContainer::from(value.run_time));
-        data.insert(
-            "cpu_usage".to_string(),
-            DataContainer::from(value.cpu_usage),
-        );
-        data.insert("memory".to_string(), DataContainer::from(value.memory));
-        data.insert(
-            "virtual_memory".to_string(),
-            DataContainer::from(value.virtual_memory),
-        );
-        data.insert(
-            "total_read_bytes".to_string(),
-            DataContainer::from(value.total_read_bytes),
-        );
-        data.insert(
-            "read_bytes".to_string(),
-            DataContainer::from(value.read_bytes),
-        );
-        data.insert(
-            "total_written_bytes".to_string(),
-            DataContainer::from(value.total_written_bytes),
-        );
-        data.insert(
-            "written_bytes".to_string(),
-            DataContainer::from(value.written_bytes),
-        );
+        if include("pid") {
+            data.insert("pid".to_string(), DataContainer::from(self.pid as u64));
+        }
+        if include("parent") {
+            data.insert(
+                "parent".to_string(),
+                self.parent
+                    .map(|pid| DataContainer::from(pid as u64))
+                    .unwrap_or(DataContainer::Null),
+            );
+        }
+        if include("name") {
+            data.insert("name".to_string(), DataContainer::from(self.name));
+        }
+        if include("cmd") {
+            data.insert("cmd".to_string(), DataContainer::from(self.cmd));
+        }
+        if include("exe") {
+            data.insert(
+                "exe".to_string(),
+                self.exe
+                    .map(DataContainer::from)
+                    .unwrap_or(DataContainer::Null),
+            );
+        }
+        if include("cwd") {
+            data.insert(
+                "cwd".to_string(),
+                self.cwd
+                    .map(DataContainer::from)
+                    .unwrap_or(DataContainer::Null),
+            );
+        }
+        if include("root") {
+            data.insert(
+                "root".to_string(),
+                self.root
+                    .map(DataContainer::from)
+                    .unwrap_or(DataContainer::Null),
+            );
+        }
+        if include("environ") {
+            data.insert("environ".to_string(), DataContainer::from(self.environ));
+        }
+        if include("status") {
+            data.insert("status".to_string(), DataContainer::from(self.status));
+        }
+        if include("start_time") {
+            data.insert(
+                "start_time".to_string(),
+                DataContainer::from(self.start_time),
+            );
+        }
+        if include("run_time") {
+            data.insert("run_time".to_string(), DataContainer::from(self.run_time));
+        }
+        if include("cpu_usage") {
+            data.insert("cpu_usage".to_string(), DataContainer::from(self.cpu_usage));
+        }
+        if include("memory") {
+            data.insert("memory".to_string(), DataContainer::from(self.memory));
+        }
+        if include("virtual_memory") {
+            data.insert(
+                "virtual_memory".to_string(),
+                DataContainer::from(self.virtual_memory),
+            );
+        }
+        if include("total_read_bytes") {
+            data.insert(
+                "total_read_bytes".to_string(),
+                DataContainer::from(self.total_read_bytes),
+            );
+        }
+        if include("read_bytes") {
+            data.insert(
+                "read_bytes".to_string(),
+                DataContainer::from(self.read_bytes),
+            );
+        }
+        if include("total_written_bytes") {
+            data.insert(
+                "total_written_bytes".to_string(),
+                DataContainer::from(self.total_written_bytes),
+            );
+        }
+        if include("written_bytes") {
+            data.insert(
+                "written_bytes".to_string(),
+                DataContainer::from(self.written_bytes),
+            );
+        }
 
-        DataContainer::Object(data)
+        Ok(DataContainer::Object(data))
+    }
+}
+
+impl From<ProcessSnapshot> for DataContainer {
+    fn from(value: ProcessSnapshot) -> Self {
+        value
+            .into_data_container(None)
+            .expect("no select means no validation error")
     }
 }
 
@@ -420,6 +488,7 @@ pub fn query_info(request: QueryRequest) -> Result<PayLoad> {
             QueryResult::NotFound => {
                 Err(anyhow::anyhow!("Unknown query target: {}", request.target))
             }
+            QueryResult::Error(message) => Err(anyhow::anyhow!(message)),
         }
     })?
 }
@@ -644,5 +713,70 @@ mod tests {
 
         println!("Time consumed: {} ms", (end - start).num_milliseconds());
         assert!(result.is_ok());
+    }
+
+    #[test]
+    #[cfg(any(feature = "web-api", feature = "native-api"))]
+    fn test_query_info_process_with_select() {
+        init().unwrap();
+
+        let mut parameter = InfoMap::new();
+        parameter.insert("limit".to_string(), DataContainer::Int(5));
+        parameter.insert(
+            "select".to_string(),
+            DataContainer::Array(vec![
+                DataContainer::Text("pid".to_string()),
+                DataContainer::Text("name".to_string()),
+            ]),
+        );
+
+        let request = QueryRequest {
+            target: "os_process".to_string(),
+            parameter: Some(parameter),
+        };
+
+        let result = query_info(request);
+        assert!(result.is_ok());
+
+        if let Ok(payload) = result {
+            match payload.value {
+                DataContainer::Array(processes) => {
+                    assert!(!processes.is_empty());
+                    for process in processes {
+                        if let DataContainer::Object(map) = process {
+                            assert!(map.contains_key("pid"));
+                            assert!(map.contains_key("name"));
+                            assert_eq!(map.len(), 2);
+                        } else {
+                            panic!("expected process to be an object");
+                        }
+                    }
+                }
+                _ => panic!("expected process list to be an array"),
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(any(feature = "web-api", feature = "native-api"))]
+    fn test_query_info_process_with_invalid_select() {
+        init().unwrap();
+
+        let mut parameter = InfoMap::new();
+        parameter.insert(
+            "select".to_string(),
+            DataContainer::Array(vec![
+                DataContainer::Text("pid".to_string()),
+                DataContainer::Text("not_a_field".to_string()),
+            ]),
+        );
+
+        let request = QueryRequest {
+            target: "os_process".to_string(),
+            parameter: Some(parameter),
+        };
+
+        let result = query_info(request);
+        assert!(result.is_err());
     }
 }

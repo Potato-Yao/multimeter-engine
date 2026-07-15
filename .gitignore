@@ -12,6 +12,8 @@ externals/windows/LibreHardwareMonitorWrapper/obj
 
 multimeter-engine-doc_zh/book
 
+./.multimeter-engine/multimeter-engine.toml
+
 /build
 
 multimeter-engine-macros/target

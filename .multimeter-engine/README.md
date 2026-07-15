@@ -1,1 +1,1 @@
-this directory is for debugging
+this directory is for debugging. a config file `multimeter-engine.toml` will be generated automatically here for the first run in debug mode.

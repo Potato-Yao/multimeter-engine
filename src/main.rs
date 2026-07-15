@@ -1,11 +1,9 @@
-mod cli;
-
 use log::{debug, info};
 use multimeter_engine::config::Config;
 use multimeter_engine::engine_init;
 use std::time::Duration;
 
-use cli::{CliCommand, parse_cli_command};
+use multimeter_engine::cli::{CliCommand, parse_cli_command};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

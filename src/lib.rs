@@ -12,6 +12,7 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 #[cfg(feature = "web-api")]
 use tokio::runtime::Runtime;
+pub mod cli;
 pub mod config;
 pub mod external_program;
 pub mod monitor;

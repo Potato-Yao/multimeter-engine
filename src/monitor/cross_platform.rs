@@ -110,6 +110,7 @@ impl CrossPlatform {
     }
 
     pub fn get_process(&self) -> Vec<&Process> {
+        // self.system.0.refresh_processes();
         self.system.0.processes().iter().map(|e| e.1).collect()
     }
 

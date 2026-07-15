@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::monitor::package_manager::PackageManager;
-use crate::monitor::{ConditionQueryStrategy, QueryResult, query_process};
+use crate::monitor::{ConditionQueryStrategy, ProcessSnapshot, QueryResult, query_process};
 use crate::util::data_container::DataContainer;
 use crate::util::info_map::InfoMap;
 use multimeter_engine_macros::QueryGenerator;
@@ -72,9 +72,16 @@ impl System {
 
 pub(crate) fn os_process_query(attach: &Option<InfoMap>) -> QueryResult {
     let strategy = process_strategy(attach);
+    let select = attach
+        .as_ref()
+        .and_then(|attach| attach.get("select"))
+        .and_then(data_container_to_string_array);
 
     match query_process(strategy) {
-        Ok(processes) => QueryResult::Found(Some(DataContainer::from(processes))),
+        Ok(processes) => match process_snapshots_to_data_container(processes, select.as_deref()) {
+            Ok(data) => QueryResult::Found(Some(data)),
+            Err(message) => QueryResult::Error(message),
+        },
         Err(_) => QueryResult::Found(None),
     }
 }
@@ -156,6 +163,31 @@ fn data_container_to_str(value: &DataContainer) -> Option<&str> {
         DataContainer::Text(value) => Some(value.as_str()),
         _ => None,
     }
+}
+
+fn data_container_to_string_array(value: &DataContainer) -> Option<Vec<String>> {
+    match value {
+        DataContainer::Array(values) => values
+            .iter()
+            .map(|value| match value {
+                DataContainer::Text(value) => Some(value.clone()),
+                _ => None,
+            })
+            .collect(),
+        _ => None,
+    }
+}
+
+fn process_snapshots_to_data_container(
+    snapshots: Vec<ProcessSnapshot>,
+    select: Option<&[String]>,
+) -> Result<DataContainer, String> {
+    let array = snapshots
+        .into_iter()
+        .map(|snapshot| snapshot.into_data_container(select))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(DataContainer::Array(array))
 }
 
 #[derive(Default, Debug, Clone, QueryGenerator)]
